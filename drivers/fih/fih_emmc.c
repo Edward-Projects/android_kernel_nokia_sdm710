@@ -37,17 +37,14 @@ static struct file_operations emmcinfo_file_ops = {
 
 static int __init fih_proc_init(void)
 {
+    proc_mkdir(FIH_PROC_DIR, NULL);
 	if (proc_create(FIH_PROC_PATH, 0, NULL, &emmcinfo_file_ops) == NULL)
-        {
-                proc_mkdir(FIH_PROC_DIR, NULL);
-                if (proc_create(FIH_PROC_PATH, 0, NULL, &emmcinfo_file_ops) == NULL)
-                {
-                        pr_err("fail to create proc/%s\n", FIH_PROC_PATH);
-                        return (1);
-                }
-        }
+    {
+        pr_err("fail to create proc/%s\n", FIH_PROC_PATH);
+        return 1;
+    }
 
-	return (0);
+	return 0;
 }
 
 static void __exit fih_proc_exit(void)
