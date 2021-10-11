@@ -4,6 +4,7 @@ ccflags-$(CONFIG_DRM_MSM_DSI_PLL) += -Idrivers/gpu/drm/msm/dsi
 ccflags-y += -Idrivers/gpu/drm/msm/sde
 ccflags-y += -Idrivers/media/platform/msm/sde/rotator
 ccflags-y += -Idrivers/gpu/drm/msm/hdmi
+ccflags-y += -Idrivers/gpu/drm/msm/customize
 
 msm_drm-y := \
 	dp/dp_usbpd.o \
@@ -187,3 +188,11 @@ msm_drm-$(CONFIG_DRM_MSM) += \
 	msm_debugfs.o
 
 obj-$(CONFIG_DRM_MSM)	+= msm_drm.o
+
+msm_drm-$(CONFIG_DRM_DSI_CUSTOMIZE) += \
+				customize/dsi_customize_init.o \
+				customize/dsi_customize_pwr.o \
+				customize/dsi_customize_debug.o
+
+msm_drm-$(CONFIG_AOD_FEATURE) += \
+				customize/dsi_aod.o

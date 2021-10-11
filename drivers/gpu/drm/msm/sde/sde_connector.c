@@ -24,6 +24,10 @@
 #include "sde_crtc.h"
 #include "sde_rm.h"
 
+#ifdef CONFIG_DRM_DSI_CUSTOMIZE
+#include "dsi_customize_debug.h"
+#endif
+
 #define BL_NODE_NAME_SIZE 32
 
 /* Autorefresh will occur after FRAME_CNT frames. Large values are unlikely */
@@ -63,6 +67,13 @@ static const struct drm_prop_enum_list e_power_mode[] = {
 	{SDE_MODE_DPMS_LP2,	"LP2"},
 	{SDE_MODE_DPMS_OFF,	"OFF"},
 };
+
+#define DISPLAY_STD_LOG_E(mode,x)       \
+	do { \
+		if(mode==SDE_MODE_DPMS_ON) { \
+			printk("BBox::STD;140700|Display|Enable|DisplayOn|%d\n",x); \
+		} \
+	} while (0)
 
 static int sde_backlight_device_update_status(struct backlight_device *bd)
 {
@@ -495,6 +506,7 @@ static int _sde_connector_update_power_locked(struct sde_connector *c_conn)
 		mutex_unlock(&c_conn->lock);
 		rc = set_power(connector, mode, display);
 		mutex_lock(&c_conn->lock);
+		DISPLAY_STD_LOG_E(mode,1);
 	}
 	c_conn->last_panel_power_mode = mode;
 
@@ -1743,7 +1755,9 @@ static int sde_connector_init_debugfs(struct drm_connector *connector)
 			return -ENOMEM;
 		}
 	}
-
+#ifdef CONFIG_DRM_DSI_CUSTOMIZE
+	sde_connector_init_customize_debugfs(connector);
+#endif
 	return 0;
 }
 #else
@@ -1886,6 +1900,7 @@ static void _sde_connector_report_panel_dead(struct sde_connector *conn)
 		return;
 
 	conn->panel_dead = true;
+	printk("BBox::EHCS;51303:i:Trigger ESD recovery\n");
 	event.type = DRM_EVENT_PANEL_DEAD;
 	event.length = sizeof(bool);
 	msm_mode_object_event_notify(&conn->base.base,

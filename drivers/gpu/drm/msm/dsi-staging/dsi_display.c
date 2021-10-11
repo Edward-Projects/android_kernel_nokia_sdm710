@@ -32,6 +32,10 @@
 #include "dsi_pwr.h"
 #include "sde_dbg.h"
 
+#ifdef CONFIG_DRM_DSI_CUSTOMIZE
+#include "dsi_customize_pwr.h"
+#endif
+
 #define to_dsi_display(x) container_of(x, struct dsi_display, host)
 #define INT_BASE_10 10
 #define NO_OVERRIDE -1
@@ -238,7 +242,12 @@ done:
 	mutex_unlock(&m_ctrl->ctrl->ctrl_lock);
 	return rc;
 }
-
+#ifdef CONFIG_DRM_DSI_CUSTOMIZE
+int dsi_display_customize_cmd_engine_enable(struct dsi_display *display)
+{
+	return dsi_display_cmd_engine_enable(display);
+}
+#endif
 static int dsi_display_cmd_engine_disable(struct dsi_display *display)
 {
 	int rc = 0;
@@ -281,6 +290,13 @@ done:
 	mutex_unlock(&m_ctrl->ctrl->ctrl_lock);
 	return rc;
 }
+
+#ifdef CONFIG_DRM_DSI_CUSTOMIZE
+int dsi_display_customize_cmd_engine_disable(struct dsi_display *display)
+{
+	return dsi_display_cmd_engine_disable(display);
+}
+#endif
 
 static void dsi_display_aspace_cb_locked(void *cb_data, bool is_detach)
 {
@@ -508,6 +524,12 @@ error:
 	return rc;
 }
 
+#ifdef CONFIG_DRM_DSI_CUSTOMIZE
+int dsi_customize_host_alloc_cmd_tx_buffer(struct dsi_display *display)
+{
+	return dsi_host_alloc_cmd_tx_buffer(display);
+}
+#endif
 static bool dsi_display_validate_reg_read(struct dsi_panel *panel)
 {
 	int i, j = 0;
@@ -971,6 +993,7 @@ static bool dsi_display_get_cont_splash_status(struct dsi_display *display)
 	return true;
 }
 
+#ifndef CONFIG_AOD_FEATURE
 int dsi_display_set_power(struct drm_connector *connector,
 		int power_mode, void *disp)
 {
@@ -981,6 +1004,9 @@ int dsi_display_set_power(struct drm_connector *connector,
 		pr_err("invalid display/panel\n");
 		return -EINVAL;
 	}
+
+	printk("BBox::EHCS;51301:i:LCM Power Mode=%d\n", power_mode);
+	pr_err("Panel Power Mode (%d)\n",power_mode);
 
 	switch (power_mode) {
 	case SDE_MODE_DPMS_LP1:
@@ -995,6 +1021,7 @@ int dsi_display_set_power(struct drm_connector *connector,
 	}
 	return rc;
 }
+#endif
 
 static ssize_t debugfs_dump_info_read(struct file *file,
 				      char __user *user_buf,
@@ -4477,7 +4504,9 @@ int dsi_display_cont_splash_config(void *dsi_display)
 				display->panel->name, rc);
 		goto clks_disabled;
 	}
-
+#ifdef CONFIG_DRM_DSI_CUSTOMIZE
+	dsi_panel_customize_pwr_state(display->panel,true);
+#endif
 	dsi_config_host_engine_state_for_cont_splash(display);
 	mutex_unlock(&display->display_lock);
 

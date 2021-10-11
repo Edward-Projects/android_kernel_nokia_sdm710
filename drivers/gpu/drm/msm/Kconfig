@@ -149,3 +149,16 @@ config DRM_SDE_RSC
           avoids the display core power collapse. A client can also register
           for display core power collapse events on rsc.
 
+config DRM_DSI_CUSTOMIZE
+	bool "Enable Custimize options"
+	default n
+	help
+        Chose this option will add custimize feature in DSI driver
+
+config AOD_FEATURE
+	bool "Enable AOD control API options"
+	depends on DRM_DSI_CUSTOMIZE
+	default n
+	help
+        Chose this option will add AOD feature in DSI driver
+

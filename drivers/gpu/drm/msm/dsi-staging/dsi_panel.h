@@ -29,6 +29,12 @@
 #include "dsi_pwr.h"
 #include "msm_drv.h"
 
+#define PANEL_OFF_MODE 0
+#define PANEL_ON_MODE 1
+#define PANEL_LOW_POWER_MODE 2
+#define PANEL_VR_MODE 3
+#define PANEL_LP_TO_ON_MODE 4
+
 #define MAX_BL_LEVEL 4096
 #define MAX_BL_SCALE_LEVEL 1024
 #define MAX_AD_BL_SCALE_LEVEL 65535
@@ -68,6 +74,17 @@ enum dsi_dms_mode {
 	DSI_DMS_MODE_DISABLED = 0,
 	DSI_DMS_MODE_RES_SWITCH_IMMEDIATE,
 };
+
+enum {
+	DISPLAY_PANEL_ID_NOT_DEFINED = 0,
+	DISPLAY_PANEL_ID_HX83112A_TIANMA_FHD_VIDEO,
+	DISPLAY_PANEL_ID_HX83112A_CTC_FHD_VIDEO,
+	DISPLAY_PANEL_ID_FT8719A_CTC_FHD_VIDEO,
+	DISPLAY_PANEL_ID_NT36672A_CTC_FHD_VIDEO,
+	DISPLAY_PANEL_ID_NT36672A_TIANMA_FHD_VIDEO,
+	DISPLAY_PANEL_ID_MAX,
+};
+
 
 struct dsi_dfps_capabilities {
 	enum dsi_dfps_type type;
@@ -172,6 +189,18 @@ struct dsi_panel_exd_config {
 	int selab;
 };
 
+struct drm_panel_reg_config {
+	bool reg_enabled;
+
+	struct dsi_panel_cmd_set status_cmd;
+	u32 *status_cmds_rlen;
+	u32 *status_valid_params;
+	u32 *status_value;
+	u8 *return_buf;
+	u8 *status_buf;
+	u32 groups;
+};
+
 struct dsi_panel {
 	const char *name;
 	enum dsi_panel_type type;
@@ -201,6 +230,7 @@ struct dsi_panel {
 	struct dsi_pinctrl_info pinctrl;
 	struct drm_panel_hdr_properties hdr_props;
 	struct drm_panel_esd_config esd_config;
+	struct drm_panel_reg_config reg_config;
 
 	bool lp11_init;
 	bool ulps_enabled;
@@ -217,6 +247,16 @@ struct dsi_panel {
 	bool sync_broadcast_en;
 
 	struct dsi_panel_exd_config exd_config;
+	
+	bool aod_feature;
+	int panel_power_mode;
+	int panel_id;
+	int reset_offtime;
+	bool panel_always_on;
+	bool power_on_initial;
+	bool pixel_early_off;
+	bool aod_is_ready;
+	bool pixel_early_control;
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)

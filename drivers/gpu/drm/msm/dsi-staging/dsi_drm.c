@@ -25,6 +25,12 @@
 #define to_dsi_bridge(x)     container_of((x), struct dsi_bridge, base)
 #define to_dsi_state(x)      container_of((x), struct dsi_connector_state, base)
 
+#define DISPLAY_STD_LOG_S(x)       \
+	do { \
+		printk("BBox::STD;140700|Display|Enable|All|%d\n",x); \
+		printk("BBox::STD;140700|Display|Enable|DisplayOn|%d\n",x); \
+	} while (0)
+
 static void convert_to_dsi_mode(const struct drm_display_mode *drm_mode,
 				struct dsi_display_mode *dsi_mode)
 {
@@ -168,6 +174,8 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
 		pr_debug("[%d] seamless pre-enable\n", c_bridge->id);
 		return;
 	}
+
+	DISPLAY_STD_LOG_S(0);
 
 	SDE_ATRACE_BEGIN("dsi_bridge_pre_enable");
 	rc = dsi_display_prepare(c_bridge->display);
