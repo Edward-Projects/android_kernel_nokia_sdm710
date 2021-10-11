@@ -20,16 +20,20 @@
 #include "cam_res_mgr_api.h"
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
+#include "PhoneDownload.h"
 
+
+#define LC898124
+extern char to_ois_baseband[8];
 int32_t cam_ois_construct_default_power_setting(
 	struct cam_sensor_power_ctrl_t *power_info)
 {
 	int rc = 0;
 
-	power_info->power_setting_size = 1;
+	power_info->power_setting_size = 3;
 	power_info->power_setting =
 		(struct cam_sensor_power_setting *)
-		kzalloc(sizeof(struct cam_sensor_power_setting),
+		kzalloc(sizeof(struct cam_sensor_power_setting)*power_info->power_setting_size,
 			GFP_KERNEL);
 	if (!power_info->power_setting)
 		return -ENOMEM;
@@ -37,12 +41,23 @@ int32_t cam_ois_construct_default_power_setting(
 	power_info->power_setting[0].seq_type = SENSOR_VAF;
 	power_info->power_setting[0].seq_val = CAM_VAF;
 	power_info->power_setting[0].config_val = 1;
-	power_info->power_setting[0].delay = 2;
+	power_info->power_setting[0].delay = 5;
 
-	power_info->power_down_setting_size = 1;
+	power_info->power_setting[1].seq_type = SENSOR_VIO;
+	power_info->power_setting[1].seq_val = CAM_VIO;
+	power_info->power_setting[1].config_val = 1;
+	power_info->power_setting[1].delay = 5;
+
+	power_info->power_setting[2].seq_type = SENSOR_VANA;
+	power_info->power_setting[2].seq_val = CAM_VANA;
+	power_info->power_setting[2].config_val = 1;
+	power_info->power_setting[2].delay = 15;
+
+
+	power_info->power_down_setting_size = 3;
 	power_info->power_down_setting =
 		(struct cam_sensor_power_setting *)
-		kzalloc(sizeof(struct cam_sensor_power_setting),
+		kzalloc(sizeof(struct cam_sensor_power_setting)*power_info->power_down_setting_size,
 			GFP_KERNEL);
 	if (!power_info->power_down_setting) {
 		rc = -ENOMEM;
@@ -52,6 +67,14 @@ int32_t cam_ois_construct_default_power_setting(
 	power_info->power_down_setting[0].seq_type = SENSOR_VAF;
 	power_info->power_down_setting[0].seq_val = CAM_VAF;
 	power_info->power_down_setting[0].config_val = 0;
+
+	power_info->power_down_setting[1].seq_type = SENSOR_VIO;
+	power_info->power_down_setting[1].seq_val = CAM_VIO;
+	power_info->power_down_setting[1].config_val = 0;
+
+	power_info->power_down_setting[2].seq_type = SENSOR_VANA;
+	power_info->power_down_setting[2].seq_val = CAM_VANA;
+	power_info->power_down_setting[2].config_val = 0;
 
 	return rc;
 
@@ -226,6 +249,17 @@ static int cam_ois_apply_settings(struct cam_ois_ctrl_t *o_ctrl,
 	list_for_each_entry(i2c_list,
 		&(i2c_set->list_head), list) {
 		if (i2c_list->op_code ==  CAM_SENSOR_I2C_WRITE_RANDOM) {
+			size = i2c_list->i2c_settings.size;
+			for (i = 0; i < size; i++) {
+				CAM_INFO(CAM_OIS,"write size: %d, i: %d, reg_addr: 0x%X, reg_data: 0x%X, delay: %d",
+					size, i,
+					i2c_list->i2c_settings.reg_setting[i].reg_addr,
+					i2c_list->i2c_settings.reg_setting[i].reg_data,
+					i2c_list->i2c_settings.reg_setting[i].delay);
+				if(i2c_list->i2c_settings.reg_setting[i].delay == 0){
+					i2c_list->i2c_settings.reg_setting[i].delay= 20;//hw code to delay 20 ms
+				}
+			}
 			rc = camera_io_dev_write(&(o_ctrl->io_master_info),
 				&(i2c_list->i2c_settings));
 			if (rc < 0) {
@@ -236,6 +270,14 @@ static int cam_ois_apply_settings(struct cam_ois_ctrl_t *o_ctrl,
 		} else if (i2c_list->op_code == CAM_SENSOR_I2C_POLL) {
 			size = i2c_list->i2c_settings.size;
 			for (i = 0; i < size; i++) {
+				CAM_INFO(CAM_OIS,"poll size: %d, i: %d, reg_addr: 0x%X, reg_data: 0x%X, delay: %d",
+					size, i,
+					i2c_list->i2c_settings.reg_setting[i].reg_addr,
+					i2c_list->i2c_settings.reg_setting[i].reg_data,
+					i2c_list->i2c_settings.reg_setting[i].delay);
+				if(i2c_list->i2c_settings.reg_setting[i].delay == 0){
+					i2c_list->i2c_settings.reg_setting[i].delay= 20;//hw code to delay 20 ms
+				}
 				rc = camera_io_dev_poll(
 				&(o_ctrl->io_master_info),
 				i2c_list->i2c_settings.reg_setting[i].reg_addr,
@@ -283,6 +325,8 @@ static int cam_ois_slaveInfo_pkt_parser(struct cam_ois_ctrl_t *o_ctrl,
 			sizeof(struct cam_ois_opcode));
 		CAM_DBG(CAM_OIS, "Slave addr: 0x%x Freq Mode: %d",
 			ois_info->slave_addr, ois_info->i2c_freq_mode);
+		CAM_INFO(CAM_OIS, "ois_name: %s, ois_fw_flag: %d, is_ois_calib: %d",
+			o_ctrl->ois_name, o_ctrl->ois_fw_flag, o_ctrl->is_ois_calib);
 	} else if (o_ctrl->io_master_info.master_type == I2C_MASTER) {
 		o_ctrl->io_master_info.client->addr = ois_info->slave_addr;
 		CAM_DBG(CAM_OIS, "Slave addr: 0x%x", ois_info->slave_addr);
@@ -295,6 +339,7 @@ static int cam_ois_slaveInfo_pkt_parser(struct cam_ois_ctrl_t *o_ctrl,
 	return rc;
 }
 
+#ifndef LC898124
 static int cam_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 {
 	uint16_t                           total_bytes = 0;
@@ -414,7 +459,7 @@ release_firmware:
 
 	return rc;
 }
-
+#endif
 /**
  * cam_ois_pkt_parse - Parse csl packet
  * @o_ctrl:     ctrl structure
@@ -593,11 +638,47 @@ static int cam_ois_pkt_parse(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 		}
 
 		if (o_ctrl->ois_fw_flag) {
-			rc = cam_ois_fw_download(o_ctrl);
-			if (rc) {
+#ifdef LC898124
+		uint32_t data = 0,i=0;
+		unsigned char ModelSelect = 0 ,ActSelect = 0;
+		if(strcmp(to_ois_baseband,"1.1") > 0){
+			ModelSelect = 4;//EP2
+			if(!strcmp(o_ctrl->ois_name,"liteon_lc898124ep2")){
+				ActSelect = 1;//liteon
+			}else{
+				ActSelect = 0;//truly
+			}
+		}else{
+			ModelSelect = 3;//EP3
+			ActSelect = 0;
+		}
+		CAM_INFO(CAM_OIS, "[LC898124] OIS ModelSelect: %d, ActSelect: %d",ModelSelect, ActSelect);
+		rc = SelectDownload(o_ctrl, ModelSelect, ActSelect);
+		if( rc ){
+			CAM_ERR(CAM_OIS, "[LC898124] OIS FW update fail rc: %d",rc);
+			//goto pwr_dwn;
+		}
+		RemapMain( o_ctrl );
+		for( i = 0 ; i < 10 ; i ++ )
+		{
+			rc = camera_io_dev_read(&(o_ctrl->io_master_info),
+				0xF100,
+				&data,
+				CAMERA_SENSOR_I2C_TYPE_WORD,
+				CAMERA_SENSOR_I2C_TYPE_DWORD);
+			CAM_ERR(CAM_OIS, "[LC898124] 0xF100 status = 0x%x", data);
+			if( data == 0 )
+				break;
+			usleep_range(10000, 10100);
+		}
+#else
+		rc = cam_ois_fw_download(o_ctrl);
+		if (rc) {
 				CAM_ERR(CAM_OIS, "Failed OIS FW Download");
 				goto pwr_dwn;
-			}
+		}
+#endif
+
 		}
 
 		rc = cam_ois_apply_settings(o_ctrl, &o_ctrl->i2c_init_data);

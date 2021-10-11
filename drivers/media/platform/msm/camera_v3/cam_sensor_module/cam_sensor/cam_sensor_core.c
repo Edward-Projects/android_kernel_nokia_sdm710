@@ -20,6 +20,21 @@
 #include "cam_packet_util.h"
 
 
+/* MM-JF-porting-FTM-camera-ping-command-00+{ */
+#define FTM
+
+#ifdef FTM
+#define CAMERA_MASK_IMX476 0x01
+int8_t g_camera_ping = 0;
+#endif
+/* MM-JF-porting-FTM-camera-ping-command-00+} */
+
+//define for PNX
+#define PNX_FTM
+#define PNX_SOURCE_COUNT 2
+static int expected_id = 0;
+static int probe_idx = 0;
+
 static void cam_sensor_update_req_mgr(
 	struct cam_sensor_ctrl_t *s_ctrl,
 	struct cam_packet *csl_packet)
@@ -619,7 +634,7 @@ int cam_sensor_match_id(struct cam_sensor_ctrl_t *s_ctrl)
 	int rc = 0;
 	uint32_t chipid = 0;
 	struct cam_camera_slave_info *slave_info;
-
+    int source_count = 0;
 	slave_info = &(s_ctrl->sensordata->slave_info);
 
 	if (!slave_info) {
@@ -634,14 +649,30 @@ int cam_sensor_match_id(struct cam_sensor_ctrl_t *s_ctrl)
 		&chipid, CAMERA_SENSOR_I2C_TYPE_WORD,
 		CAMERA_SENSOR_I2C_TYPE_WORD);
 
-	CAM_DBG(CAM_SENSOR, "read id: 0x%x expected id 0x%x:",
-			 chipid, slave_info->sensor_id);
-	if (cam_sensor_id_by_mask(s_ctrl, chipid) != slave_info->sensor_id) {
-		CAM_ERR(CAM_SENSOR, "chip id %x does not match %x",
-				chipid, slave_info->sensor_id);
-		return -ENODEV;
-	}
-	return rc;
+    CAM_INFO(CAM_SENSOR, "read id: 0x%x expected id: 0x%x, sensor_slave_addr = 0x%x",
+             chipid, slave_info->sensor_id, slave_info->sensor_slave_addr);/* MM-CCC-BringUpCameraSensor-20180502-00+ */
+    if (cam_sensor_id_by_mask(s_ctrl, chipid) != slave_info->sensor_id) {
+        CAM_ERR(CAM_SENSOR, "chip id %x does not match 0x%x, probe_idx: %d",
+                chipid, slave_info->sensor_id, probe_idx++);
+#ifdef PNX_FTM
+        source_count = PNX_SOURCE_COUNT;
+#endif
+        if(2 == source_count){
+            if(expected_id == slave_info->sensor_id){
+                expected_id = 0;
+                printk("BBox;%s:read id %d match id fail\n", __func__, chipid);/* MM-CCC-AddCameraBBS-201800607-00+ */
+                printk("BBox::UEC;9::16\n");/* MM-CCC-AddCameraBBS-201800607-00+ */
+            }else{
+                expected_id = slave_info->sensor_id;
+                CAM_INFO(CAM_SENSOR, "backup expected sensor id: 0x%x", expected_id);
+            }
+        }else{
+            printk("BBox;%s:read id %d match id fail\n", __func__, chipid);/* MM-CCC-AddCameraBBS-201800607-00+ */
+            printk("BBox::UEC;9::16\n");/* MM-CCC-AddCameraBBS-201800607-00+ */
+        }
+        return -ENODEV;
+    }
+    return rc;
 }
 
 int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
@@ -651,6 +682,7 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 	struct cam_control *cmd = (struct cam_control *)arg;
 	struct cam_sensor_power_ctrl_t *power_info =
 		&s_ctrl->sensordata->power_info;
+    uint32_t data = 0,i = 0;
 	if (!s_ctrl || !arg) {
 		CAM_ERR(CAM_SENSOR, "s_ctrl is NULL");
 		return -EINVAL;
@@ -743,6 +775,17 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 		 */
 		s_ctrl->is_probe_succeed = 1;
 		s_ctrl->sensor_state = CAM_SENSOR_INIT;
+
+/* MM-JF-porting-FTM-camera-ping-command-00+{ */
+#ifdef FTM
+		if(s_ctrl->sensordata->slave_info.sensor_id == 0x476) {
+			g_camera_ping |= CAMERA_MASK_IMX476;
+		}
+		else
+			g_camera_ping |= 1 << (s_ctrl->soc_info.index);
+		CAM_ERR(CAM_SENSOR, "g_camera_ping=%d", g_camera_ping);
+#endif
+/* MM-JF-porting-FTM-camera-ping-command-00+} */
 	}
 		break;
 	case CAM_ACQUIRE_DEV: {
@@ -883,6 +926,7 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 
 		if (s_ctrl->i2c_data.streamon_settings.is_settings_valid &&
 			(s_ctrl->i2c_data.streamon_settings.request_id == 0)) {
+            CAM_INFO(CAM_SENSOR,"start streamon");
 			rc = cam_sensor_apply_settings(s_ctrl, 0,
 				CAM_SENSOR_PACKET_OPCODE_SENSOR_STREAMON);
 			if (rc < 0) {
@@ -890,7 +934,24 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 					"cannot apply streamon settings");
 				goto release_mutex;
 			}
-		}
+            //FIH add for check s5k3t1/s5k3l6 0x0005 when stream on/off --20180815
+            if ((0x3141 == s_ctrl->sensordata->slave_info.sensor_id) 
+             || (0x30C6 == s_ctrl->sensordata->slave_info.sensor_id)) {
+                for (i = 0 ; i < 50 ; i ++) {
+                    rc = camera_io_dev_read(&(s_ctrl->io_master_info),
+                        0x0005, &data,
+                        CAMERA_SENSOR_I2C_TYPE_WORD,
+                        CAMERA_SENSOR_I2C_TYPE_BYTE);
+                    CAM_INFO(CAM_SENSOR, "[0x%x] reg 0x0005 status = 0x%x"
+                        , s_ctrl->sensordata->slave_info.sensor_id, data);
+                    if (data != 0xFF)
+                        break;
+                    usleep_range(5000, 5100); //max wait 250ms
+                }
+            }
+            CAM_INFO(CAM_SENSOR,"end streamon");
+            //FIH add for check s5k3t1/s5k3l6 0x0005 when stream on/off --20180815
+        }
 		s_ctrl->sensor_state = CAM_SENSOR_START;
 		CAM_INFO(CAM_SENSOR,
 			"CAM_START_DEV Success, sensor_id:0x%x,sensor_slave_addr:0x%x",
@@ -907,14 +968,31 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 			goto release_mutex;
 		}
 
-		if (s_ctrl->i2c_data.streamoff_settings.is_settings_valid &&
-			(s_ctrl->i2c_data.streamoff_settings.request_id == 0)) {
-			rc = cam_sensor_apply_settings(s_ctrl, 0,
-				CAM_SENSOR_PACKET_OPCODE_SENSOR_STREAMOFF);
-			if (rc < 0) {
-				CAM_ERR(CAM_SENSOR,
-				"cannot apply streamoff settings");
-			}
+        if (s_ctrl->i2c_data.streamoff_settings.is_settings_valid &&
+            (s_ctrl->i2c_data.streamoff_settings.request_id == 0)) {
+            CAM_INFO(CAM_SENSOR,"start streamoff");
+            rc = cam_sensor_apply_settings(s_ctrl, 0,
+                CAM_SENSOR_PACKET_OPCODE_SENSOR_STREAMOFF);
+            if (rc < 0) {
+                CAM_ERR(CAM_SENSOR,  "cannot apply streamoff settings");
+            }
+            //FIH add for check s5k3t1/s5k3l6 0x0005 when stream on/off --20180815
+            if ((0x3141 == s_ctrl->sensordata->slave_info.sensor_id) 
+             || (0x30C6 == s_ctrl->sensordata->slave_info.sensor_id)) {
+                for (i = 0 ; i < 50; i ++) {
+                    rc = camera_io_dev_read(&(s_ctrl->io_master_info),
+                        0x0005, &data,
+                        CAMERA_SENSOR_I2C_TYPE_WORD,
+                        CAMERA_SENSOR_I2C_TYPE_BYTE);
+                    CAM_INFO(CAM_SENSOR, "[0x%x] reg 0x0005 status = 0x%x"
+                        , s_ctrl->sensordata->slave_info.sensor_id, data);
+                    if (data == 0xFF)
+                        break;
+                    usleep_range(5000, 5100); //max wait 250ms
+                }
+            }
+            CAM_INFO(CAM_SENSOR,"end streamoff");
+            //FIH add for check s5k3t1/s5k3l6 0x0005 when stream on/off --20180815
 		}
 
 		cam_sensor_release_per_frame_resource(s_ctrl);
@@ -1111,6 +1189,8 @@ int cam_sensor_power_up(struct cam_sensor_ctrl_t *s_ctrl)
 	rc = cam_sensor_core_power_up(power_info, soc_info);
 	if (rc < 0) {
 		CAM_ERR(CAM_SENSOR, "power up the core is failed:%d", rc);
+        printk("BBox;%s:power up fail\n", __func__);/* MM-CCC-AddCameraBBS-201800607-00+ */
+		printk("BBox::UEC;9::10\n");/* MM-CCC-AddCameraBBS-201800607-00+ */
 		return rc;
 	}
 
@@ -1142,6 +1222,8 @@ int cam_sensor_power_down(struct cam_sensor_ctrl_t *s_ctrl)
 	rc = cam_sensor_util_power_down(power_info, soc_info);
 	if (rc < 0) {
 		CAM_ERR(CAM_SENSOR, "power down the core is failed:%d", rc);
+        printk("BBox;%s:power down fail\n", __func__);/* MM-CCC-AddCameraBBS-201800607-00+ */
+		printk("BBox::UEC;9::10\n");/* MM-CCC-AddCameraBBS-201800607-00+ */
 		return rc;
 	}
 

@@ -178,10 +178,11 @@ int cam_sync_deinit_object(struct sync_table_row *table, uint32_t idx)
 	}
 
 	if (row->state == CAM_SYNC_STATE_ACTIVE)
-		CAM_WARN(CAM_SYNC,
+        //FIH modify log level because of this isn't a error { 20181120
+		CAM_DBG(CAM_SYNC,
 			"Destroying an active sync object name:%s id:%i",
 			row->name, row->sync_id);
-
+        //FIH modify log level because of this isn't a error } 20181120
 	row->state = CAM_SYNC_STATE_INVALID;
 
 	/* Object's child and parent objects will be added into this list */

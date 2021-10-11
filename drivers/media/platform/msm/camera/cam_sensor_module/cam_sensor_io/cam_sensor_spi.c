@@ -260,6 +260,8 @@ int cam_spi_read(struct camera_io_master *client,
 		addr_type, data_type, NULL, NULL);
 	if (rc < 0) {
 		CAM_ERR(CAM_SENSOR, "failed %d", rc);
+		printk("BBox;%s:spi read fail\n", __func__);/* MM-CCC-AddCameraBBS-201800607-00+ */
+		printk("BBox::UEC;9::1\n");/* MM-CCC-AddCameraBBS-201800607-00+ */
 		return rc;
 	}
 
@@ -481,6 +483,8 @@ NOMEM:
 	return -ENOMEM;
 ERROR:
 	CAM_ERR(CAM_SENSOR, "error write");
+	printk("BBox;%s:spi write error\n", __func__);/* MM-CCC-AddCameraBBS-201800607-00+ */
+	printk("BBox::UEC;9::1\n");/* MM-CCC-AddCameraBBS-201800607-00+ */
 OUT:
 	kfree(tx);
 	return rc;
