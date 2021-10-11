@@ -1,0 +1,2 @@
+obj-$(CONFIG_GOODIX_FINGERPRINT) += goodix/
+obj-$(CONFIG_EGIS_FINGERPRINT) += egis/

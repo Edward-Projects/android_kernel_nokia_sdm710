@@ -238,6 +238,14 @@ struct qpnp_pon {
 	bool			legacy_hard_reset_offset;
 };
 
+#ifdef CONFIG_FIH_APR
+struct fih_pon {
+	struct qpnp_pon         *pon[3];
+};
+
+static struct fih_pon savedpon;
+#endif
+
 static int pon_ship_mode_en;
 module_param_named(
 	ship_mode_en, pon_ship_mode_en, int, 0600
@@ -994,10 +1002,16 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 	if (!cfg->old_state && !key_status) {
 		input_report_key(pon->pon_input, cfg->key_code, 1);
 		input_sync(pon->pon_input);
+#ifdef CONFIG_FIH_RESUME_PERFORMANCE_LOG
+		pr_info("PMIC input: code=%d, sts=1~\n", cfg->key_code);
+#endif
 	}
 
 	input_report_key(pon->pon_input, cfg->key_code, key_status);
 	input_sync(pon->pon_input);
+#ifdef CONFIG_FIH_RESUME_PERFORMANCE_LOG
+	pr_info("PMIC input: code=%d, sts=0x%hhx\n", cfg->key_code, key_status);
+#endif
 
 	cfg->old_state = !!key_status;
 
@@ -2342,6 +2356,11 @@ static int qpnp_pon_probe(struct platform_device *pdev)
 			panic("An UVLO was occurred.");
 	}
 
+#ifdef CONFIG_FIH_APR
+	index = to_spmi_device(pon->pdev->dev.parent)->usid;
+	savedpon.pon[index] = pon;
+#endif
+
 	/* program s3 debounce */
 	rc = of_property_read_u32(pon->pdev->dev.of_node,
 				"qcom,s3-debounce", &s3_debounce);
@@ -2635,6 +2654,67 @@ static int qpnp_pon_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_FIH_APR
+static void qpnp_pon_show_reason(unsigned int usid)
+{
+        struct qpnp_pon *pon;
+        unsigned int index;
+        uint pon_sts = 0;
+        u16 poff_sts = 0;
+        int reason_index_offset = 0;
+        u8 buf[2];
+
+        pon = savedpon.pon[usid];
+        if (pon == NULL)
+                return;
+	/* PON reason */
+	regmap_read(pon->regmap, QPNP_PON_REASON1(pon), &pon_sts);
+	index = ffs(pon_sts) - 1;
+	cold_boot = !qpnp_pon_is_warm_reset();
+	if (index >= ARRAY_SIZE(qpnp_pon_reason) || index < 0) {
+		dev_info(&pon->pdev->dev,
+			"PMIC@SID%d Power-on reason: Unknown and '%s' boot\n",
+			to_spmi_device(pon->pdev->dev.parent)->usid,
+			 cold_boot ? "cold" : "warm");
+	} else {
+		dev_info(&pon->pdev->dev,
+			"PMIC@SID%d Power-on reason: %s and '%s' boot\n",
+			to_spmi_device(pon->pdev->dev.parent)->usid,
+			 qpnp_pon_reason[index],
+			cold_boot ? "cold" : "warm");
+	}
+	/* POFF reason */
+	if (!is_pon_gen1(pon) && pon->subtype != PON_1REG) {
+		read_gen2_pon_off_reason(pon, &poff_sts,
+						&reason_index_offset);
+	} else {
+		regmap_bulk_read(pon->regmap, QPNP_POFF_REASON1(pon),
+			buf, 2);
+		poff_sts = buf[0] | (buf[1] << 8);
+	}
+	index = ffs(poff_sts) - 1 + reason_index_offset;
+	if (index >= ARRAY_SIZE(qpnp_poff_reason) || index < 0) {
+		dev_info(&pon->pdev->dev,
+				"PMIC@SID%d: Unknown power-off reason\n",
+				to_spmi_device(pon->pdev->dev.parent)->usid);
+	} else {
+		dev_info(&pon->pdev->dev,
+				"PMIC@SID%d: Power-off reason: %s\n",
+				to_spmi_device(pon->pdev->dev.parent)->usid,
+				qpnp_poff_reason[index]);
+	}
+}
+
+void qpnp_pon_dump_reason(void)
+{
+	int i;
+
+	for (i = 0; i < 3; i++) {
+		qpnp_pon_show_reason(i);
+	}
+}
+#endif
+
 static const struct of_device_id spmi_match_table[] = {
 	{ .compatible = "qcom,qpnp-power-on", },
 	{}
@@ -2651,6 +2731,9 @@ static struct platform_driver qpnp_pon_driver = {
 
 static int __init qpnp_pon_init(void)
 {
+#ifdef CONFIG_FIH_APR
+	memset(&savedpon, 0, sizeof(savedpon));
+#endif
 	return platform_driver_register(&qpnp_pon_driver);
 }
 subsys_initcall(qpnp_pon_init);

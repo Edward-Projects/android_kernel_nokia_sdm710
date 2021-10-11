@@ -1,0 +1,19 @@
+#
+# fingerprint driver
+#
+
+menu "Fingerprint Driver"
+
+config GOODIX_FINGERPRINT
+    bool "generic goodix fingerprint driver"
+    default n
+    help
+      add support for goodix fingerprint driver
+
+config EGIS_FINGERPRINT
+    bool "generic egis fingerprint driver"
+    default n
+    help
+      add support for egis fingerprint driver
+
+endmenu
