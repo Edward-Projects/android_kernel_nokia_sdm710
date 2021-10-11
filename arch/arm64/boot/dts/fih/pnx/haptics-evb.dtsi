@@ -1,0 +1,7 @@
+&pm660_haptics {
+	status = "ok";
+	qcom,actuator-type = <1>;
+	qcom,vmax-mv = <3000>;
+	qcom,en-brake;
+	qcom,brake-pattern = <0x2 0x3 0x3 0x3>;
+};

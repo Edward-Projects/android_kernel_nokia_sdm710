@@ -139,11 +139,12 @@
 	qcom,msm-mclk-freq = <9600000>;
 	qcom,msm-mbhc-hphl-swh = <1>;
 	qcom,msm-mbhc-gnd-swh = <1>;
-	qcom,msm-micbias2-ext-cap;
-	qcom,msm-hs-micbias-type = "external";
+
+	/*qcom,msm-micbias2-ext-cap; */ 
+	qcom,msm-hs-micbias-type = "internal";
 	qcom,cdc-pdm-gpios = <&cdc_pdm_gpios>;
 	qcom,cdc-comp-gpios = <&cdc_comp_gpios>;
-	qcom,cdc-dmic-gpios = <&cdc_dmic_gpios>;
+	/* qcom,cdc-dmic-gpios = <&cdc_dmic_gpios>; */ 
 
 	asoc-codec = <&stub_codec>, <&msm_digital_codec>,
 		     <&pmic_analog_codec>, <&msm_sdw_codec>,
@@ -153,10 +154,11 @@
 			   "msm-ext-disp-audio-codec-rx";
 
 	qcom,wsa-max-devs = <2>;
-	qcom,wsa-devs = <&wsa881x_211_en>, <&wsa881x_212_en>,
-			<&wsa881x_213_en>, <&wsa881x_214_en>;
-	qcom,wsa-aux-dev-prefix = "SpkrLeft", "SpkrRight",
-				  "SpkrLeft", "SpkrRight";
+
+	/*qcom,wsa-devs = <&wsa881x_211_en>, <&wsa881x_212_en>,
+			<&wsa881x_213_en>, <&wsa881x_214_en>; */ 
+	/* qcom,wsa-aux-dev-prefix = "SpkrLeft", "SpkrRight",
+				  "SpkrLeft", "SpkrRight"; */ 
 };
 
 &soc {
@@ -331,7 +333,7 @@
 		pinctrl-1 = <&aqt_rst_idle>;
 	};
 
-	tert_mi2s_gpios: tert_mi2s_pinctrl {
+	/*tert_mi2s_gpios: tert_mi2s_pinctrl {
 		status = "disabled";
 		compatible = "qcom,msm-cdc-pinctrl";
 		pinctrl-names = "aud_active", "aud_sleep";
@@ -339,7 +341,7 @@
 			     &ter_i2s_sck_active>;
 		pinctrl-1 = <&ter_i2s_data0_sleep &ter_i2s_data1_sleep
 			     &ter_i2s_sck_sleep>;
-	};
+	}; */ 
 
 	i2c@a88000 {
 		aqt1000_cdc: aqt1000-i2c-codec@d {

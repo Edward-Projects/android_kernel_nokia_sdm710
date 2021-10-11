@@ -1,0 +1,12 @@
+/* BatteryData */
+
+/* FueGauge */
+&pm660_fg {
+	qcom,fg-rsense-sel = <1>; //default: 2 (Rsense is Battery FET and SMB)
+};
+
+/* Charger */
+
+/* Slave Charger */
+
+/* Wireless Charger */

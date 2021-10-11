@@ -179,6 +179,7 @@
 		status = "okay";
 		compatible = "qcom,sdm670-asoc-snd";
 		qcom,model = "sdm670-mtp-snd-card";
+		qcom,wsa-disable;
 		qcom,wcn-btfm;
 		qcom,ext-disp-audio-rx;
 		qcom,mi2s-audio-intf;

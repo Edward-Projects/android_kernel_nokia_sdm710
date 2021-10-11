@@ -1,0 +1,84 @@
+
+qcom,mcnair_lishen_3400mah_pnx {
+	qcom, = <24>;
+	/* #3502027_HE363_3400mAh_averaged_MasterSlave_Jun25th2018*/
+	fih,batt-manufacturer = "McNair-LiShen";
+	qcom,fastchg-current-ma = <3400>;
+	qcom,max-voltage-uv = <4400000>;
+	qcom,nom-batt-capacity-mah = <3400>;
+	qcom,batt-id-kohm = <200>;
+	qcom,battery-beta = <3435>;
+	qcom,fg-cc-cv-threshold-mv = <4390>;
+	qcom,jeita-fcc-ranges = <0	159	1000000
+				 160	439	3400000
+				 440	550	1000000>;
+	qcom,jeita-fv-ranges = <0	439	4400000
+				440	550	4150000>;
+	fih,jeita-hysteresis = <9>;
+	fih,warm-recharge-voltage-uv = <4050000>;
+	qcom,step-chg-ranges = <0	3000000	250000
+				3010000	3200000	1400000
+				3210000	4400000	3400000>;
+	fih,step-chg-hysteresis = <0>;
+	qcom,battery-type = "mcnair_lishen_3400mah_pnx";
+	qcom,checksum = <0xC325>;
+	qcom,gui-version = "PM660GUI - 0.0.0.45";
+	qcom,fg-profile-data = [
+		 B9 1E 6B FD
+		 15 03 39 F5
+		 E5 1C EB 01
+		 CB 0D 94 0A
+		 17 18 9E 23
+		 99 44 32 5A
+		 6D 00 00 00
+		 10 00 00 00
+		 00 00 E4 CC
+		 AD BC C8 CA
+		 1C 00 08 00
+		 54 DA 3E E5
+		 E9 FD 87 00
+		 B7 F2 89 0B
+		 DF 05 03 3A
+		 15 06 09 20
+		 27 00 14 00
+		 19 1F 70 06
+		 80 03 4B F4
+		 CA 1C 01 03
+		 DD 15 6C 12
+		 86 18 25 2A
+		 5D 4D 3E 62
+		 61 00 00 00
+		 0C 00 00 00
+		 00 00 3A CC
+		 AD CA 78 C5
+		 19 00 00 00
+		 2E EA 3E E5
+		 1F 07 76 00
+		 B2 F3 0C 0B
+		 91 F3 C9 1A
+		 AE 33 CC FF
+		 07 10 00 00
+		 E9 0D 66 46
+		 19 00 40 00
+		 66 01 0A FA
+		 FF 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+	];
+};

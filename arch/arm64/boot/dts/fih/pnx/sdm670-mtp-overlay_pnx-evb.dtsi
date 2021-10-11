@@ -1,0 +1,35 @@
+#include "sdm670-fih-info_pnx-evb.dtsi"
+
+/* Pinctrl */
+
+/* PMIC */
+
+/* Touch */
+
+/* Display */
+
+/* Haptics */
+
+/* ASIC Flash */
+
+/* NFC */
+
+/* Audio */
+#include "audio-alsa-evb.dtsi"
+
+/* Gyro */
+
+/* Hall sensor */
+
+/* Switch */
+
+/* Camera */
+/*#include "sdm670-fih-camera-sensor-mtp-evb.dtsi"*//* MM-CCC-BringUpCameraSensor-20180502-00+ */
+
+/* Fingerprint */
+
+/* SD Card */
+
+/* Wifi */
+
+/* keypad */

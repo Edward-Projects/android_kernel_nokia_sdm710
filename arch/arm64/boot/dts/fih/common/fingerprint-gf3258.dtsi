@@ -1,0 +1,16 @@
+&soc {
+	qbt1000 {
+		status = "disabled";
+	};
+
+	gf3258 {
+		compatible = "goodix,fingerprint";
+		status = "disabled";
+		interrupt-parent = <&tlmm>;
+		interrupts = <0 121 0>;
+		fp-gpio-reset = <&tlmm 134 0x0>;
+		fp-gpio-irq = <&tlmm 121 0x0>;
+		goodix,key-customer-define = <1>;
+		avdd-supply = <&pm660l_bob>;
+	};
+};

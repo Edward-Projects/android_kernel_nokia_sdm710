@@ -1,0 +1,119 @@
+/* BatteryData */
+/delete-node/ &mtp_batterydata;
+
+&vendor {
+	fih_batterydata: qcom,battery-data {
+		qcom,batt-id-range-pct = <15>;
+		#include "fg-gen3-batterydata-scud-coslight-3400mah.dtsi"
+		#include "fg-gen3-batterydata-mcnair-lishen-3400mah.dtsi"
+		#include "fg-gen3-batterydata-scud-lishen-3400mah.dtsi"
+		#include "fg-gen3-batterydata-atl-na-3400mah.dtsi"
+		#include "fg-gen3-batterydata-jd-lishen-3400mah.dtsi"
+	};
+};
+
+/* FueGauge */
+&pm660_fg {
+	status = "okay";
+	qcom,battery-data = <&fih_batterydata>;
+	qcom,fg-cutoff-voltage = <3300>; //default: 3.2V
+	qcom,fg-empty-voltage = <3100>; //default: 2.8V
+	qcom,fg-vbatt-low-thr = <3300>;
+	qcom,fg-recharge-voltage = <4200>; //default: 4.25V
+	qcom,fg-chg-term-current = <75>; //default: 100mA
+	qcom,fg-sys-term-current = <(-200)>; //default: -125mA
+	qcom,fg-chg-term-base-current = <75>; //default: 75mA
+	qcom,fg-cutoff-current = <100>; //default: 500mA
+	qcom,fg-delta-soc-thr = <1>; //default: 1
+	qcom,fg-recharge-soc-thr = <95>; //default: 95
+	qcom,fg-rsense-sel = <0>; //default: 2 (Rsense is Battery FET and SMB)
+	qcom,fg-jeita-thresholds = <0 15 44 55>; //default: (0, 5, 45, 50)
+	//qcom,fg-esr-timer-charging = <0 96>; //how? from AOP
+	//qcom,fg-esr-timer-awake = <96 96>; //how? from AOP
+	//qcom,fg-esr-timer-asleep = <256 256>; //how? from AOP
+	//qcom,fg-esr-pulse-thresh-ma = <110>; //default: 110mA
+	//qcom,fg-esr-meas-curr-ma = <120>; //default: 120mA
+	qcom,cycle-counter-en;
+	qcom,fg-force-load-profile;
+	//qcom,cl-start-capacity = <15>; //default: 15
+	//qcom,cl-min-temp = <150>; //default: 150 (15C)
+	//qcom,cl-max-temp = <500>; //default: 500 (50C)
+	//qcom,cl-max-increment = <5>; //default: 5 (0.5%)
+	//qcom,cl-max-decrement = <100>; //default: 100 (10%)
+	//qcom,cl-min-limit = <0>; //default: 0
+	//qcom,cl-max-limit = <0>; //default: 0
+	qcom,battery-thermal-coefficients = [A1 50 FF]; //3435K
+	qcom,fg-jeita-hyst-temp = <0>; // No hysteresis
+	qcom,fg-batt-temp-delta = <2>; // 2 Kelvin
+	qcom,hold-soc-while-full;
+	qcom,linearize-soc;
+	/delete-property/ qcom,ki-coeff-soc-dischg;
+	/delete-property/ qcom,ki-coeff-med-dischg;
+	/delete-property/ qcom,ki-coeff-hi-dischg;
+	/delete-property/ qcom,ki-coeff-full-dischg;
+	/delete-property/ qcom,fg-rconn-mohms;
+	/delete-property/ qcom,fg-esr-clamp-mohms;
+	/delete-property/ qcom,fg-esr-filter-switch-temp;
+	/delete-property/ qcom,fg-esr-tight-filter-micro-pct;
+	/delete-property/ qcom,fg-esr-broad-filter-micro-pct;
+	/delete-property/ qcom,fg-esr-tight-lt-filter-micro-pct;
+	/delete-property/ qcom,fg-esr-broad-lt-filter-micro-pct;
+	/delete-property/ qcom,fg-auto-recharge-soc;
+	/delete-property/ qcom,slope-limit-temp-threshold;
+	/delete-property/ qcom,slope-limit-coeffs;
+	//qcom,fg-bmd-en-delay-ms = <200>; // 200ms
+};
+
+/* Charger */
+&pm660_charger {
+	status = "okay";
+	qcom,battery-data = <&fih_batterydata>;
+	/delete-property/ qcom,batteryless-platform;
+	qcom,fcc-max-ua = <3400000>;
+	qcom,fv-max-uv = <4400000>;
+	qcom,usb-icl-ua = <3000000>;
+	qcom,usb-ocl-ua = <1500000>; //default: 1.5A
+	qcom,dc-icl-ua = <0>;
+	qcom,boost-threshold-ua = <100000>; //default: 100mA
+	/delete-property/ qcom,wipower-max-uw;
+	qcom,thermal-mitigation = <3400000 3000000 2500000 2000000 1500000 1000000 500000>;
+	qcom,float-option = <1>;  //DCP
+	/delete-property/ qcom,hvdcp-disable;
+	/delete-property/ qcom,chg-inhibit-threshold-mv;
+	/delete-property/ qcom,auto-recharge-soc;
+	/delete-property/ qcom,suspend-input-on-debug-batt;
+	/delete-property/ qcom,min-freq-khz;
+	/delete-property/ qcom,max-freq-khz;
+	//qcom,otg-deglitch-time-ms = <50>; //default: 50ms
+	qcom,step-charging-enable;
+	//qcom,wd-bark-time-secs = <64>; //default: 64s
+	qcom,sw-jeita-enable;
+
+	fih,info-update-ms = <10000>;
+	fih,input-priority = <1>;		/* 0x1362 1 - USBIN has priority */
+	fih,panel-on-usb-icl-ua = <1000000>;
+	fih,sw-jeita-recover;
+	fih,charging-check-enable;
+};
+
+/* Slave Charger */
+&smb1355_0 {
+	status = "disabled";
+};
+&smb1355_1 {
+	status = "disabled";
+};
+&smb1355_charger_0 {
+	status = "disabled";
+	/delete-property/ qcom,disable-ctm;
+	qcom,parallel-mode = <3>; //USBMID-USBMID
+	/delete-property/ qcom,stacked-batfet;
+};
+&smb1355_charger_1 {
+	status = "disabled";
+	/delete-property/ qcom,disable-ctm;
+	qcom,parallel-mode = <3>; //USBMID-USBMID
+	/delete-property/ qcom,stacked-batfet;
+};
+
+/* Wireless Charger */

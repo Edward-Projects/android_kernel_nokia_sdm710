@@ -1,0 +1,42 @@
+/* Regulator */
+
+/* GPIO */
+
+/* RTC */
+&pm660_rtc {
+	qcom,qpnp-rtc-alarm-pwrup = <1>;
+	status = "okay";
+};
+
+/* FlashLED */
+&flash_led {
+	status = "okay";
+
+	qcom,flash_0 {
+		status = "okay";
+	};
+	qcom,flash_1 {
+		status = "okay";
+	};
+	qcom,flash_2 {
+		status = "disabled";
+	};
+	qcom,torch_0 {
+		status = "okay";
+	};
+	qcom,torch_1 {
+		status = "okay";
+	};
+	qcom,torch_2 {
+		status = "disabled";
+	};
+	qcom,led_switch_0 {
+		status = "okay";
+	};
+	qcom,led_switch_1 {
+		status = "disabled";
+	};
+};
+
+/* VADC */
+

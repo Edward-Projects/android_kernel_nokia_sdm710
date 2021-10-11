@@ -1,0 +1,17 @@
+&qupv3_se3_i2c {
+	status = "ok";
+	nq@28 {
+              status = "disabled";
+        };
+        sec-nfc@27 {
+	    compatible = "sec-nfc";
+	    reg = <0x27>;
+	    sec-nfc,ven-gpio = <&tlmm 12 0x00>;
+	    sec-nfc,firm-gpio = <&tlmm 43 0x00>;
+	    sec-nfc,irq-gpio = <&tlmm 44 0x00>;
+	    sec-nfc,ldo_en = <&tlmm 114 0x00>;
+	    sec-nfc,clk_req-gpio = <&pm660_gpios 4 0x00>;
+	    clocks = <&clock_rpmh RPMH_LN_BB_CLK3>;
+	    clock-names = "ref_clk";
+    };
+};

@@ -1,0 +1,9 @@
+#include "sdm670-fih-memmap.dtsi"
+#include "sdm670-fih-apr.dtsi"
+#include "sdm670-fih-ddr.dtsi"
+#include "sdm670-fih-mfd.dtsi"
+#include "sdm670-fih-cda.dtsi"
+#include "sdm670-fih-seb.dtsi"
+#include "fingerprint-gf3258.dtsi"
+#include "fingerprint-et5xx.dtsi"
+#include "sdm670-fih-camera-sensor-mtp-evt.dtsi"/* MM-CCC-BringUpCameraSensorForEvt-20180511-00+ */

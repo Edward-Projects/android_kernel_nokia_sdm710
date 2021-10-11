@@ -1,0 +1,13 @@
+&soc {
+	qbt1000 {
+		status = "disabled";
+	};
+	et520 {
+		compatible = "egistec,et520";
+		status = "disabled";
+		interrupt-parent = <&tlmm>;
+		interrupts = <0 121 0>;
+		et-gpio-reset = <&tlmm 134 0x0>;
+		et-gpio-irq = <&tlmm 121 0x0>;
+	};
+};

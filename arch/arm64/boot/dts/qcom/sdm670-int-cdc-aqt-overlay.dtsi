@@ -13,7 +13,7 @@
 &int_codec {
 	qcom,model = "sdm670-aqt-snd-card";
 	qcom,msm-mi2s-master = <1>, <1>, <0>, <1>, <1>;
-	qcom,tert-mi2s-gpios = <&tert_mi2s_gpios>;
+	/*qcom,tert-mi2s-gpios = <&tert_mi2s_gpios>;*/ 
 	qcom,us-euro-gpios = <&wcd_usbc_analog_en2_gpio>;
 	asoc-codec = <&stub_codec>, <&msm_digital_codec>,
 		     <&pmic_analog_codec>, <&msm_sdw_codec>,
@@ -68,9 +68,9 @@
 	};
 };
 
-&tert_mi2s_gpios {
+/*&tert_mi2s_gpios {
 	status = "ok";
-};
+};*/
 
 &clock_audio_lnbb {
 	status = "ok";

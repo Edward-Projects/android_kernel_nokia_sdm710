@@ -1,0 +1,12 @@
+&soc {
+	fih_info {
+		compatible = "fih_info";
+		status = "ok";
+		fih-info,devmodel = "PNX";
+		fih-info,baseband = "3.0";
+		fih-info,bandinfo = "G_850_900_1800_1900^W_1_2_5_8^C_0^T_34_39^L_1_3_5_8_34_38_39_40_41";
+		fih-info,hwmodel  = "PNX";
+		fih-info,simslot  = "2";
+		fih-info,variant  = "0";
+	};
+};

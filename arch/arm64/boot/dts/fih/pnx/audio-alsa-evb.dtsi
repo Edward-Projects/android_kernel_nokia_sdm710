@@ -1,0 +1,272 @@
+/* Copyright (c) 2017, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+&pmic_analog_codec {
+	status = "disabled";
+};
+
+&msm_sdw_codec {
+	status = "disabled";
+};
+
+&cdc_pdm_gpios {
+	status = "disabled";
+};
+
+&cdc_comp_gpios {
+	status = "disabled";
+};
+
+&cdc_dmic_gpios {
+	status = "disabled";
+};
+
+&cdc_sdw_gpios {
+	status = "disabled";
+};
+
+&wsa_spkr_en1 {
+	status = "disabled";
+};
+
+&wsa_spkr_en2 {
+	status = "disabled";
+};
+
+&qupv3_se8_spi {
+	status = "okay";
+};
+
+&wcd9xxx_intc {
+	status = "okay";
+};
+
+&wdsp_mgr {
+	status = "okay";
+};
+
+&wdsp_glink {
+	status = "okay";
+};
+
+&slim_aud {
+	status = "okay";
+};
+
+&dai_slim {
+	status = "okay";
+};
+
+&wcd934x_cdc {
+	status = "okay";
+};
+
+&clock_audio_lnbb {
+	status = "okay";
+};
+
+&wcd_rst_gpio {
+	status = "okay";
+};
+
+&int_codec {
+	status = "disabled";
+	fih,ti-tas2557-pnx;
+	qcom,audio-routing =
+		"RX_BIAS", "INT_MCLK0",
+		"SPK_RX_BIAS", "INT_MCLK0",
+		"INT_LDO_H", "INT_MCLK0",
+		"RX_I2S_CLK", "INT_MCLK0",
+		"TX_I2S_CLK", "INT_MCLK0",
+		"MIC BIAS External", "Handset Mic",
+		"MIC BIAS External2", "Headset Mic",
+		"MIC BIAS External", "Secondary Mic",
+		"AMIC1", "MIC BIAS External",
+		"AMIC2", "MIC BIAS External2",
+		"AMIC3", "MIC BIAS External",
+		"PDM_IN_RX1", "PDM_OUT_RX1",
+		"PDM_IN_RX2", "PDM_OUT_RX2",
+		"PDM_IN_RX3", "PDM_OUT_RX3",
+		"ADC1_IN", "ADC1_OUT",
+		"ADC2_IN", "ADC2_OUT",
+		"ADC3_IN", "ADC3_OUT";
+
+	/delete-property/ qcom,cdc-dmic-gpios;
+	qcom,wsa-disable = <1>;
+
+	qcom,wsa-max-devs = <0>;
+	/delete-property/ qcom,wsa-devs;
+	/delete-property/ qcom,wsa-aux-dev-prefix;
+};
+
+
+&tavil_snd {
+	status = "okay";
+	qcom,msm-mi2s-master = <1>, <1>, <1>, <1>, <1>;
+
+	qcom,audio-routing =
+		"AIF4 VI", "MCLK",
+		"RX_BIAS", "MCLK",
+		"MADINPUT", "MCLK",
+		"AMIC2", "MIC BIAS2",
+		"MIC BIAS2", "Headset Mic",
+		"AMIC3", "MIC BIAS2",
+		"MIC BIAS2", "ANCRight Headset Mic",
+		"AMIC4", "MIC BIAS2",
+		"MIC BIAS2", "ANCLeft Headset Mic",
+		"AMIC5", "MIC BIAS3",
+		"MIC BIAS3", "Handset Mic",
+		"DMIC0", "MIC BIAS1",
+		"MIC BIAS1", "Digital Mic0",
+		"DMIC1", "MIC BIAS1",
+		"MIC BIAS1", "Digital Mic1",
+		"DMIC2", "MIC BIAS3",
+		"MIC BIAS3", "Digital Mic2",
+		"DMIC3", "MIC BIAS3",
+		"MIC BIAS3", "Digital Mic3",
+		"DMIC4", "MIC BIAS4",
+		"MIC BIAS4", "Digital Mic4",
+		"DMIC5", "MIC BIAS4",
+		"MIC BIAS4", "Digital Mic5";
+	qcom,quat-mi2s-gpios = <&quat_mi2s_gpios>;
+
+	qcom,wsa-disable = <1>; 
+
+    /delete-property/ qcom,hph-en0-gpio;    /* no use Qualcomm default HiFi amplifier */
+    /delete-property/ qcom,hph-en1-gpio;    /* no use Qualcomm default HiFi amplifier */
+
+    qcom,wsa-max-devs = <0>;                    /* no use Qualcomm default wsa speaker amplifier */
+    /delete-property/ qcom,wsa-devs;            /* no use Qualcomm default wsa speaker amplifier */
+    /delete-property/ qcom,wsa-aux-dev-prefix;  /* no use Qualcomm default wsa speaker amplifier */
+};
+
+
+
+/* TAS2557 SmartAmp I2C */
+&qupv3_se7_i2c {
+    status = "disabled";
+    tas2557@4c {
+        compatible = "ti,tas2557";
+        tas2557,device-model = "AOP";
+        reg = <0x4c>;
+        ti,cdc-reset-gpio = <&tlmm 78 0>;
+        ti,irq-gpio = <&tlmm 76 0>;
+        ti,i2s-bits = <16>;   /* support 16, 24, 32 */
+        ti,bypass-tmax = <0>;   /* 0, not bypass; 1, bypass */
+        pinctrl-names = "default";
+        pinctrl-0 = <&sdm670_gpio76_default &sdm670_gpio78_default>;
+    };
+};
+
+&soc{
+
+	quat_mi2s_gpios: quat_mi2s_pinctrl {
+		compatible = "qcom,msm-cdc-pinctrl";
+		pinctrl-names = "aud_active", "aud_sleep";
+		pinctrl-0 = <&quat_mi2s_active &quat_mi2s_tx_active>;
+		pinctrl-1 = <&quat_mi2s_sleep &quat_mi2s_tx_sleep>;
+		qcom,lpi-gpios;
+	};
+};
+
+
+&lpi_tlmm{
+
+	quat_mi2s {
+		quat_mi2s_sleep: quat_mi2s_sleep {
+			mux {
+				pins = "gpio23", "gpio24", "gpio25";
+				function = "func2";
+			};
+
+			config {
+				pins = "gpio23", "gpio24", "gpio25";
+				drive-strength = <2>; /* 2 mA */
+				pull-down;
+			};
+		};
+
+		quat_mi2s_active: quat_mi2s_active {
+			mux {
+				pins = "gpio23", "gpio24", "gpio25";
+				function = "func2";
+			};
+			config {
+				pins = "gpio23", "gpio24", "gpio25";
+				drive-strength = <2>; /* 2 mA */
+				output-low;
+			};
+		};
+	};
+
+	quat_mi2s_tx {
+		quat_mi2s_tx_sleep: quat_mi2s_tx_sleep {
+			mux {
+				pins = "gpio26";
+				function = "func2";
+			};
+
+			config {
+				pins = "gpio26";
+				drive-strength = <2>; /* 2 mA */
+			};
+		};
+
+		quat_mi2s_tx_active: quat_mi2s_tx_active {
+			mux {
+				pins = "gpio26";
+				function = "func2";
+			};
+			config {
+				pins = "gpio26";
+				drive-strength = <2>; /* 8 mA */
+				bias-disable;
+				input-enable;
+			};
+		};
+	};
+};
+
+
+&tlmm{
+	sdm670_gpio78 { /* SAMP_IRQ */
+		sdm670_gpio78_default: sdm670_gpio78_default {
+			mux {
+				pins = "gpio78";
+				function = "gpio";
+			};
+
+			config {
+				pins = "gpio78";
+				drive-strength = <2>;
+				bias-disable;
+				input-enable;
+			};
+		};
+	};
+	sdm670_gpio76 { /* SAMP_RESET */
+		sdm670_gpio76_default: sdm670_gpio76_default {
+			mux {
+				pins = "gpio76";
+				function = "gpio";
+			};
+
+			config {
+				pins = "gpio76";
+				drive-strength = <2>;
+				bias-disable;
+				output-high;
+			};
+		};
+	};
+
+};

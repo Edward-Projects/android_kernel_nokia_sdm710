@@ -1,0 +1,13 @@
+&qupv3_se9_i2c {
+        status = "okay";
+        focaltech@38 {
+                compatible = "focaltech,fts";
+                reg = <0x38>;
+                interrupt-parent = <&tlmm>;
+                interrupts = <125 0x02>;
+                focaltech,reset-gpio = <&tlmm 99 0x01>;
+                focaltech,irq-gpio = <&tlmm 125 0x02>;
+                focaltech,max-touch-number = <10>;
+                focaltech,display-coords =  <0 0 1080 2246>;
+        };
+};

@@ -1,0 +1,40 @@
+/* Pinctrl */
+&tlmm {
+	fih,skipped-gpio-list = <0 1 2 3 81 82 83 84>;
+};
+
+/* PMIC */
+#include "sdm670-pmic_pnx-evb.dtsi"
+#include "sdm670-charger_pnx-evb.dtsi"
+
+/* Touch */
+/*#include "touch-focaltech8719-evb.dtsi"*/
+#include "touch-himax83112-evb.dtsi"
+#include "touch-nt36672-dvt.dtsi"
+
+/* Display */
+#include "display.dtsi"
+
+/* Haptics */
+#include "haptics-evb.dtsi"
+
+/* NFC */
+
+/* Audio */
+
+/* Gyro */
+
+/* Hall sensor */
+#include "hall-ah1902.dtsi"
+
+/* LIGHT Camera */
+
+/* Fingerprint */
+
+/* SD Card */
+#include "sd-evb.dtsi"
+
+/* Wifi */
+
+/* keypad */
+#include "keypad-evb.dtsi"

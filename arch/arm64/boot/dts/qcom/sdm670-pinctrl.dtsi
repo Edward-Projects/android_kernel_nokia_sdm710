@@ -731,8 +731,8 @@
 
 				config {
 					pins = "gpio6", "gpio7";
-					drive-strength = <2>;
-					bias-disable;
+					drive-strength = <4>;
+					bias-pull-up;
 				};
 			};
 
@@ -745,7 +745,7 @@
 				config {
 					pins = "gpio6", "gpio7";
 					drive-strength = <2>;
-					bias-pull-up;
+					bias-disable;
 				};
 			};
 		};
@@ -1914,7 +1914,7 @@
 			};
 		};
 
-		ter_i2s_data0 {
+		/*ter_i2s_data0 {
 			ter_i2s_data0_sleep: ter_i2s_data0_sleep {
 				mux {
 					pins = "gpio77";
@@ -1923,7 +1923,7 @@
 
 				config {
 					pins = "gpio77";
-					drive-strength = <2>;   /* 2 mA */
+					drive-strength = <2>;
 				};
 			};
 
@@ -1935,7 +1935,7 @@
 
 				config {
 					pins = "gpio77";
-					drive-strength = <8>;   /* 8 mA */
+					drive-strength = <8>;
 					input-enable;
 				};
 			};
@@ -1950,7 +1950,7 @@
 
 				config {
 					pins = "gpio78";
-					drive-strength = <2>;   /* 2 mA */
+					drive-strength = <2>;
 				};
 			};
 
@@ -1962,11 +1962,11 @@
 
 				config {
 					pins = "gpio78";
-					drive-strength = <8>;   /* 8 mA */
+					drive-strength = <8>;
 					output-high;
 				};
 			};
-		};
+		}; */ 
 
 		pmx_sde: pmx_sde {
 			sde_dsi_active: sde_dsi_active {

@@ -1,0 +1,84 @@
+
+qcom,scud_lishen_3400mah_pnx {
+	qcom, = <24>;
+	/* #3649840_HE377_3400mAh_averaged_MasterSlave_Oct8th2018*/
+	fih,batt-manufacturer = "SCUD-LiShen";
+	qcom,fastchg-current-ma = <3400>;
+	qcom,max-voltage-uv = <4400000>;
+	qcom,nom-batt-capacity-mah = <3400>;
+	qcom,batt-id-kohm = <300>;
+	qcom,battery-beta = <3435>;
+	qcom,fg-cc-cv-threshold-mv = <4390>;
+	qcom,jeita-fcc-ranges = <0	159	1000000
+				 160	439	3400000
+				 440	550	1000000>;
+	qcom,jeita-fv-ranges = <0	439	4400000
+				440	550	4150000>;
+	fih,jeita-hysteresis = <9>;
+	fih,warm-recharge-voltage-uv = <4050000>;
+	qcom,step-chg-ranges = <0	3000000	250000
+				3010000	3200000	1400000
+				3210000	4400000	3400000>;
+	fih,step-chg-hysteresis = <0>;
+	qcom,battery-type = "scud_lishen_3400mah_pnx";
+	qcom,checksum = <0xDC5C>;
+	qcom,gui-version = "PM660GUI - 0.0.0.45";
+	qcom,fg-profile-data = [
+		 F7 1E 60 06
+		 B2 03 F8 06
+		 E6 1C E5 FB
+		 BA 0D A7 0A
+		 09 18 A9 23
+		 8E 44 39 5A
+		 6F 00 00 00
+		 10 00 00 00
+		 00 00 B0 CC
+		 E1 C5 37 CB
+		 1E 00 08 00
+		 19 00 5B E5
+		 D7 FD 77 00
+		 8A 00 BF 0B
+		 BC 0D C6 23
+		 18 06 09 20
+		 27 00 14 00
+		 09 20 47 05
+		 AA 0A 59 FC
+		 E4 1C 9F 02
+		 9C 0C A9 0B
+		 8D 18 16 2A
+		 86 4D 06 62
+		 71 00 00 00
+		 0D 00 00 00
+		 00 00 FA 07
+		 B4 CA B6 CD
+		 1A 00 00 00
+		 BC E3 5B E5
+		 49 F4 37 EB
+		 3C EA 26 0A
+		 DB F3 89 1A
+		 B0 33 CC FF
+		 07 10 00 00
+		 C2 0D 66 46
+		 1A 00 40 00
+		 87 01 0A FA
+		 FF 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+	];
+};
