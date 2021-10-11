@@ -48,6 +48,14 @@
 #define TO_SECS(arr)		(arr[0] | (arr[1] << 8) | (arr[2] << 16) | \
 							(arr[3] << 24))
 
+#define RTC_BBS 1
+#ifdef RTC_BBS
+#define BBS_RTC_READ_FAILED()\
+do { printk("BBox::UEC;18::4;RTC read failed\n"); } while (0)
+#define BBS_RTC_WRITE_FAILED()\
+do { printk("BBox::UEC;18::5;RTC write failed\n"); } while (0)
+#endif
+
 /* Module parameter to control power-on-alarm */
 bool poweron_alarm;
 EXPORT_SYMBOL(poweron_alarm);
@@ -78,6 +86,9 @@ static int qpnp_read_wrapper(struct qpnp_rtc *rtc_dd, u8 *rtc_val,
 	rc = regmap_bulk_read(rtc_dd->regmap, base, rtc_val, count);
 	if (rc) {
 		dev_err(rtc_dd->rtc_dev, "SPMI read failed\n");
+#ifdef RTC_BBS
+		BBS_RTC_READ_FAILED();
+#endif
 		return rc;
 	}
 	return 0;
@@ -91,6 +102,9 @@ static int qpnp_write_wrapper(struct qpnp_rtc *rtc_dd, u8 *rtc_val,
 	rc = regmap_bulk_write(rtc_dd->regmap, base, rtc_val, count);
 	if (rc) {
 		dev_err(rtc_dd->rtc_dev, "SPMI write failed\n");
+#ifdef RTC_BBS
+		BBS_RTC_WRITE_FAILED();
+#endif
 		return rc;
 	}
 
