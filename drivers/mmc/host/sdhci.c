@@ -50,6 +50,9 @@
 static unsigned int debug_quirks = 0;
 static unsigned int debug_quirks2;
 
+static int FIH_STD_emmc_err_counter = 0;
+static int FIH_STD_sd_err_counter = 0;
+
 static void sdhci_finish_data(struct sdhci_host *);
 
 static bool sdhci_check_state(struct sdhci_host *);
@@ -57,6 +60,57 @@ static bool sdhci_check_state(struct sdhci_host *);
 static void sdhci_enable_sdio_irq_nolock(struct sdhci_host *host, int enable);
 
 static void sdhci_enable_preset_value(struct sdhci_host *host, bool enable);
+
+static void sdhci_fih_SatsD_checker(int hostname, int err_type)
+{
+	static bool emmc_log_flg = true;
+	static bool sd_log_flg = true;
+	int type_id = 0;
+        
+	switch (hostname) {
+		case FIH_SDHCI_STD_TY_EMMC: type_id = FIH_SDHCI_STD_EMMC_TYPE_ID; FIH_STD_emmc_err_counter++; break;
+		case FIH_SDHCI_STD_TY_SD: type_id = FIH_SDHCI_STD_SD_TYPE_ID; FIH_STD_sd_err_counter++; break;
+		default: printk("sdhci STD: type_id error.\n"); return;
+	}
+
+	if (type_id == FIH_SDHCI_STD_EMMC_TYPE_ID) {
+		if (emmc_log_flg == false) return;
+		switch (err_type) {
+			case FIH_SDHCI_STD_ERR_INT_CRC: printk("BBox::STD;%d|SDHCI_STD_ERR_INT_CRC, %d\n", FIH_STD_EMMC_CRC_ERR, FIH_STD_emmc_err_counter); break;
+			case FIH_SDHCI_STD_ERR_INT_DATA_CRC: printk("BBox::STD;%d|SDHCI_STD_ERR_INT_DATA_CRC, %d\n", FIH_STD_EMMC_CRC_ERR, FIH_STD_emmc_err_counter); break;
+			case FIH_SDHCI_STD_ERR_AUTO_CMD_CRC: printk("BBox::STD;%d|SDHCI_STD_ERR_AUTO_CMD_CRC, %d\n", FIH_STD_EMMC_CRC_ERR, FIH_STD_emmc_err_counter); break;
+			default: printk("sdhci STD: err_type error.\n"); return;
+		}
+	} else if (type_id == FIH_SDHCI_STD_SD_TYPE_ID) {
+		if (sd_log_flg == false) return;
+		switch (err_type) {
+			case FIH_SDHCI_STD_ERR_INT_CRC: printk("BBox::STD;%d|SDHCI_STD_ERR_INT_CRC, %d\n", FIH_STD_SD_CRC_ERR, FIH_STD_sd_err_counter); break;
+			case FIH_SDHCI_STD_ERR_INT_DATA_CRC: printk("BBox::STD;%d|SDHCI_STD_ERR_INT_DATA_CRC, %d\n", FIH_STD_SD_CRC_ERR, FIH_STD_sd_err_counter); break;
+			case FIH_SDHCI_STD_ERR_AUTO_CMD_CRC: printk("BBox::STD;%d|SDHCI_STD_ERR_AUTO_CMD_CRC, %d\n", FIH_STD_SD_CRC_ERR, FIH_STD_sd_err_counter); break;
+			default: printk("sdhci STD: err_type error.\n"); return;
+		}
+	}
+#if 0
+        //Every 5 times error save SatsD log
+        if ((FIH_STD_emmc_err_counter%5==0) && (type_id == FIH_SDHCI_STD_EMMC_TYPE_ID) && (emmc_log_flg == true)){
+		//Triger SatsD Checker: Dump emmc STD log
+		printk("BBox::STD;%d|eMMC CRC error %d\n", FIH_STD_EMMC_CRC_ERR, FIH_STD_emmc_err_counter);
+        } else if ((FIH_STD_sd_err_counter%5==0) && (type_id == FIH_SDHCI_STD_SD_TYPE_ID) && (sd_log_flg == true)){
+		//Triger SatsD Checker: Dump SD SatsD log
+		printk("BBox::STD;%d|SD CRC error %d\n", FIH_STD_SD_CRC_ERR, FIH_STD_sd_err_counter);
+        }
+#endif
+        //If CRC error over 50 times, disable dump log
+        if (FIH_STD_emmc_err_counter >= FIH_SDHCI_STD_MAX_ERR) {
+		//printk("sdhci STD: sd_log_flg = false\n");
+		emmc_log_flg = false;
+        }
+        else if (FIH_STD_sd_err_counter >= FIH_SDHCI_STD_MAX_ERR) {
+		//printk("sdhci STD: sd_log_flg = false\n");
+		sd_log_flg = false;
+
+        }
+}
 
 static void sdhci_dump_state(struct sdhci_host *host)
 {
@@ -67,8 +121,15 @@ static void sdhci_dump_state(struct sdhci_host *host)
 		mmc_hostname(mmc), host->clock, mmc->clk_gated,
 		mmc->claimer->comm, host->pwr,
 		(host->flags & SDHCI_HOST_IRQ_STATUS));
+	pr_info("BBox;%s: clk: %d clk-gated: %d claimer: %s pwr: %d host->irq = %d\n",
+		mmc_hostname(mmc), host->clock, mmc->clk_gated,
+		mmc->claimer->comm, host->pwr,
+		(host->flags & SDHCI_HOST_IRQ_STATUS));
 	#else
 	pr_info("%s: clk: %d claimer: %s pwr: %d\n",
+		mmc_hostname(mmc), host->clock,
+		mmc->claimer->comm, host->pwr);
+	pr_info("BBox;%s: clk: %d claimer: %s pwr: %d\n",
 		mmc_hostname(mmc), host->clock,
 		mmc->claimer->comm, host->pwr);
 	#endif
@@ -76,10 +137,16 @@ static void sdhci_dump_state(struct sdhci_host *host)
 		mmc_hostname(mmc), mmc->parent->power.runtime_status,
 		atomic_read(&mmc->parent->power.usage_count),
 		mmc->parent->power.disable_depth);
+	pr_info("BBox;%s: rpmstatus[pltfm](runtime-suspend:usage_count:disable_depth)(%d:%d:%d)\n",
+		mmc_hostname(mmc), mmc->parent->power.runtime_status,
+		atomic_read(&mmc->parent->power.usage_count),
+		mmc->parent->power.disable_depth);
 }
 
 static void sdhci_dumpregs(struct sdhci_host *host)
 {
+	unsigned int cmd_op_code = 0;
+
 	MMC_TRACE(host->mmc,
 		"%s: 0x04=0x%08x 0x06=0x%08x 0x0E=0x%08x 0x30=0x%08x 0x34=0x%08x 0x38=0x%08x\n",
 		__func__,
@@ -148,6 +215,51 @@ static void sdhci_dumpregs(struct sdhci_host *host)
 			       readl(host->ioaddr + SDHCI_ADMA_ADDRESS));
 	}
 
+	pr_info("BBox;SDHCI: =========== REGISTER DUMP (%s)===========\n",
+		mmc_hostname(host->mmc));
+
+	pr_info("BBox;SDHCI: Sys addr: 0x%08x | Version:  0x%08x\n",
+		sdhci_readl(host, SDHCI_DMA_ADDRESS),
+		sdhci_readw(host, SDHCI_HOST_VERSION));
+	pr_info("BBox;SDHCI: Blk size: 0x%08x | Blk cnt:  0x%08x\n",
+		sdhci_readw(host, SDHCI_BLOCK_SIZE),
+		sdhci_readw(host, SDHCI_BLOCK_COUNT));
+	pr_info("BBox;SDHCI: Argument: 0x%08x | Trn mode: 0x%08x\n",
+		sdhci_readl(host, SDHCI_ARGUMENT),
+		sdhci_readw(host, SDHCI_TRANSFER_MODE));
+	pr_info("BBox;SDHCI: Present:  0x%08x | Host ctl: 0x%08x\n",
+		sdhci_readl(host, SDHCI_PRESENT_STATE),
+		sdhci_readb(host, SDHCI_HOST_CONTROL));
+	pr_info("BBox;SDHCI: Power:    0x%08x | Blk gap:  0x%08x\n",
+		sdhci_readb(host, SDHCI_POWER_CONTROL),
+		sdhci_readb(host, SDHCI_BLOCK_GAP_CONTROL));
+	pr_info("BBox;SDHCI: Wake-up:  0x%08x | Clock:    0x%08x\n",
+		sdhci_readb(host, SDHCI_WAKE_UP_CONTROL),
+		sdhci_readw(host, SDHCI_CLOCK_CONTROL));
+	pr_info("BBox;SDHCI: Timeout:  0x%08x | Int stat: 0x%08x\n",
+		sdhci_readb(host, SDHCI_TIMEOUT_CONTROL),
+		sdhci_readl(host, SDHCI_INT_STATUS));
+	pr_info("BBox;SDHCI: Int enab: 0x%08x | Sig enab: 0x%08x\n",
+		sdhci_readl(host, SDHCI_INT_ENABLE),
+		sdhci_readl(host, SDHCI_SIGNAL_ENABLE));
+	pr_info("BBox;SDHCI: AC12 err: 0x%08x | Slot int: 0x%08x\n",
+		host->auto_cmd_err_sts,
+		sdhci_readw(host, SDHCI_SLOT_INT_STATUS));
+	pr_info("BBox;SDHCI: Caps:     0x%08x | Caps_1:   0x%08x\n",
+		sdhci_readl(host, SDHCI_CAPABILITIES),
+		sdhci_readl(host, SDHCI_CAPABILITIES_1));
+	pr_info("BBox;SDHCI: Cmd:      0x%08x | Max curr: 0x%08x\n",
+		sdhci_readw(host, SDHCI_COMMAND),
+		sdhci_readl(host, SDHCI_MAX_CURRENT));
+	pr_info("BBox;SDHCI: Resp 1:   0x%08x | Resp 0:   0x%08x\n",
+		sdhci_readl(host, SDHCI_RESPONSE + 0x4),
+		sdhci_readl(host, SDHCI_RESPONSE));
+	pr_info("BBox;SDHCI: Resp 3:   0x%08x | Resp 2:   0x%08x\n",
+		sdhci_readl(host, SDHCI_RESPONSE + 0xC),
+		sdhci_readl(host, SDHCI_RESPONSE + 0x8));
+	pr_info("BBox;SDHCI: Host ctl2: 0x%08x\n",
+		sdhci_readw(host, SDHCI_HOST_CONTROL2));
+
 	host->mmc->err_occurred = true;
 	host->mmc->last_failed_rq_time = ktime_get();
 
@@ -155,6 +267,29 @@ static void sdhci_dumpregs(struct sdhci_host *host)
 		host->ops->dump_vendor_regs(host);
 	sdhci_dump_state(host);
 	pr_info(DRIVER_NAME ": ===========================================\n");
+	pr_info("BBox;SDHCI: ===========================================\n");
+	/* New BBS log*/
+	cmd_op_code = (sdhci_readw(host, SDHCI_COMMAND)) >> 8;
+
+	if(strncmp(mmc_hostname(host->mmc), "mmc0", 4) == 0) {
+		if(cmd_op_code == MMC_READ_SINGLE_BLOCK || cmd_op_code == MMC_READ_MULTIPLE_BLOCK) {
+			printk ("BBox::UEC; 6::0\n");
+			printk ("BBox::UPD; 67::%lu\n", (unsigned long)sdhci_readl(host, SDHCI_ARGUMENT));
+		} else if(cmd_op_code == MMC_WRITE_BLOCK || cmd_op_code == MMC_WRITE_MULTIPLE_BLOCK) {
+			printk ("BBox::UEC; 6::1\n");
+			printk ("BBox::UPD; 67::%lu\n", (unsigned long)sdhci_readl(host, SDHCI_ARGUMENT));
+		} else {
+			printk ("BBox::UEC; 6::2\n");
+		}
+	} else if(strncmp(mmc_hostname(host->mmc), "mmc1", 4) == 0) {
+		if(cmd_op_code == MMC_READ_SINGLE_BLOCK || cmd_op_code == MMC_READ_MULTIPLE_BLOCK) {
+			printk ("BBox::UEC; 43::0\n");
+		} else if(cmd_op_code == MMC_WRITE_BLOCK || cmd_op_code == MMC_WRITE_MULTIPLE_BLOCK) {
+			printk ("BBox::UEC; 43::1\n");
+		} else {
+			printk ("BBox::UEC; 43::2\n");
+		}
+	}
 }
 
 /*****************************************************************************\
@@ -1245,6 +1380,8 @@ void sdhci_send_command(struct sdhci_host *host, struct mmc_command *cmd)
 		if (timeout == 0) {
 			pr_err("%s: Controller never released inhibit bit(s).\n",
 			       mmc_hostname(host->mmc));
+			pr_err("BBox;%s: Controller never released "
+				"inhibit bit(s).\n", mmc_hostname(host->mmc));
 			MMC_TRACE(host->mmc,
 			"%s :Controller never released inhibit bit(s)\n",
 			__func__);
@@ -1537,8 +1674,11 @@ void sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 		if (timeout == 0) {
 			pr_err("%s: Internal clock never stabilised.\n",
 			       mmc_hostname(host->mmc));
+			printk ("BBox::UEC; 6::3\n");
 			MMC_TRACE(host->mmc,
 			"%s: Internal clock never stabilised.\n", __func__);
+			MMC_TRACE(host->mmc,
+			"BBox;%s: Internal clock never stabilised.\n", __func__);
 			sdhci_dumpregs(host);
 			return;
 		}
@@ -2932,7 +3072,9 @@ static void sdhci_timeout_timer(unsigned long data)
 		       mmc_hostname(host->mmc));
 		MMC_TRACE(host->mmc, "Timeout waiting for h/w interrupt\n");
 		sdhci_dumpregs(host);
-
+		pr_err("BBox;%s: Timeout waiting for hardware "
+			"interrupt.\n", mmc_hostname(host->mmc));
+		MMC_TRACE(host->mmc, "BBox;Timeout waiting for h/w interrupt\n");
 		host->cmd->error = -ETIMEDOUT;
 		sdhci_finish_mrq(host, host->cmd->mrq);
 	}
@@ -2998,6 +3140,9 @@ static void sdhci_cmd_irq(struct sdhci_host *host, u32 intmask, u32 *intmask_p)
 			return;
 		pr_err("%s: Got command interrupt 0x%08x even though no command operation was in progress.\n",
 		       mmc_hostname(host->mmc), (unsigned)intmask);
+		pr_err("BBox;%s: Got command interrupt 0x%08x even "
+			"though no command operation was in progress.\n",
+			mmc_hostname(host->mmc), (unsigned)intmask);
 		MMC_TRACE(host->mmc,
 		"Got command interrupt 0x%08x even though no command operation was in progress.\n",
 		(unsigned int)intmask);
@@ -3019,10 +3164,20 @@ static void sdhci_cmd_irq(struct sdhci_host *host, u32 intmask, u32 *intmask_p)
 			host->mmc->err_stats[MMC_ERR_CMD_CRC]++;
 		}
 
+		if(strncmp(mmc_hostname(host->mmc), "mmc0", 4) == 0) {
+			if (intmask & SDHCI_INT_CRC)
+				sdhci_fih_SatsD_checker(FIH_SDHCI_STD_TY_EMMC, FIH_SDHCI_STD_ERR_INT_CRC);
+		}else if(strncmp(mmc_hostname(host->mmc), "mmc1", 4) == 0) {
+			if (intmask & SDHCI_INT_CRC)
+				sdhci_fih_SatsD_checker(FIH_SDHCI_STD_TY_SD, FIH_SDHCI_STD_ERR_INT_CRC);
+		}
+
 		if (intmask & SDHCI_INT_AUTO_CMD_ERR) {
 			auto_cmd_status = host->auto_cmd_err_sts;
 			host->mmc->err_stats[MMC_ERR_AUTO_CMD]++;
 			pr_err_ratelimited("%s: %s: AUTO CMD err sts 0x%08x\n",
+				mmc_hostname(host->mmc), __func__, auto_cmd_status);
+			pr_err_ratelimited("BBox;%s: %s: AUTO CMD err sts 0x%08x\n",
 				mmc_hostname(host->mmc), __func__, auto_cmd_status);
 			if (auto_cmd_status & (SDHCI_AUTO_CMD12_NOT_EXEC |
 					       SDHCI_AUTO_CMD_INDEX_ERR |
@@ -3030,8 +3185,14 @@ static void sdhci_cmd_irq(struct sdhci_host *host, u32 intmask, u32 *intmask_p)
 				host->cmd->error = -EIO;
 			else if (auto_cmd_status & SDHCI_AUTO_CMD_TIMEOUT_ERR)
 				host->cmd->error = -ETIMEDOUT;
-			else if (auto_cmd_status & SDHCI_AUTO_CMD_CRC_ERR)
+			else if (auto_cmd_status & SDHCI_AUTO_CMD_CRC_ERR) {
 				host->cmd->error = -EILSEQ;
+				if(strncmp(mmc_hostname(host->mmc), "mmc0", 4) == 0) {
+					sdhci_fih_SatsD_checker(FIH_SDHCI_STD_TY_EMMC, FIH_SDHCI_STD_ERR_AUTO_CMD_CRC);
+				}else if(strncmp(mmc_hostname(host->mmc), "mmc1", 4) == 0) {
+					sdhci_fih_SatsD_checker(FIH_SDHCI_STD_TY_SD, FIH_SDHCI_STD_ERR_AUTO_CMD_CRC);
+				}
+			}
 		}
 
 		/* Treat data command CRC error the same as data CRC error */
@@ -3159,6 +3320,9 @@ static void sdhci_data_irq(struct sdhci_host *host, u32 intmask)
 
 		pr_err("%s: Got data interrupt 0x%08x even though no data operation was in progress.\n",
 		       mmc_hostname(host->mmc), (unsigned)intmask);
+		pr_err("BBox;%s: Got data interrupt 0x%08x even "
+			"though no data operation was in progress.\n",
+			mmc_hostname(host->mmc), (unsigned)intmask);
 		MMC_TRACE(host->mmc,
 		"Got data interrupt 0x%08x even though no data operation was in progress.\n",
 		(unsigned int)intmask);
@@ -3177,9 +3341,17 @@ static void sdhci_data_irq(struct sdhci_host *host, u32 intmask)
 		(command != MMC_BUS_TEST_R)) {
 		host->data->error = -EILSEQ;
 		host->mmc->err_stats[MMC_ERR_DAT_CRC]++;
+		if(strncmp(mmc_hostname(host->mmc), "mmc0", 4) == 0) {
+			if (intmask & SDHCI_INT_DATA_CRC)
+				sdhci_fih_SatsD_checker(FIH_SDHCI_STD_TY_EMMC, FIH_SDHCI_STD_ERR_INT_DATA_CRC);
+		}else if(strncmp(mmc_hostname(host->mmc), "mmc1", 4) == 0) {
+			if (intmask & SDHCI_INT_DATA_CRC)
+				sdhci_fih_SatsD_checker(FIH_SDHCI_STD_TY_SD, FIH_SDHCI_STD_ERR_INT_DATA_CRC);
+		}
 	}
 	else if (intmask & SDHCI_INT_ADMA_ERROR) {
 		pr_err("%s: ADMA error\n", mmc_hostname(host->mmc));
+		printk ("BBox::UEC; 6::4\n");
 		sdhci_adma_show_error(host);
 		host->mmc->err_stats[MMC_ERR_ADMA]++;
 		host->data->error = -EIO;
@@ -3302,6 +3474,22 @@ static irqreturn_t sdhci_cmdq_irq(struct sdhci_host *host, u32 intmask)
 		err = sdhci_get_data_err(host, intmask);
 		if (intmask & SDHCI_INT_DATA_TIMEOUT)
 			is_cmd_err = sdhci_card_busy(host->mmc);
+	}
+
+	if(strncmp(mmc_hostname(host->mmc), "mmc0", 4) == 0) {
+		if (intmask & SDHCI_INT_CRC)
+			sdhci_fih_SatsD_checker(FIH_SDHCI_STD_TY_EMMC, FIH_SDHCI_STD_ERR_INT_CRC);
+		else if (intmask & SDHCI_INT_DATA_CRC)
+			sdhci_fih_SatsD_checker(FIH_SDHCI_STD_TY_EMMC, FIH_SDHCI_STD_ERR_INT_DATA_CRC);
+		else if (FIH_STD_emmc_err_counter!=0)
+                	FIH_STD_emmc_err_counter = 0;  //If not CRC error, reset STD CRC counter	
+	}else if(strncmp(mmc_hostname(host->mmc), "mmc1", 4) == 0) {
+		if (intmask & SDHCI_INT_CRC)
+			sdhci_fih_SatsD_checker(FIH_SDHCI_STD_TY_SD, FIH_SDHCI_STD_ERR_INT_CRC);
+		else if (intmask & SDHCI_INT_DATA_CRC)
+			sdhci_fih_SatsD_checker(FIH_SDHCI_STD_TY_SD, FIH_SDHCI_STD_ERR_INT_DATA_CRC);
+		else if (FIH_STD_sd_err_counter!=0)
+                	FIH_STD_sd_err_counter = 0;  //If not CRC error, reset STD CRC counter
 	}
 
 	ret = cmdq_irq(host->mmc, err, is_cmd_err);
@@ -3471,6 +3659,8 @@ out:
 
 	if (unexpected) {
 		pr_err("%s: Unexpected interrupt 0x%08x.\n",
+			   mmc_hostname(host->mmc), unexpected);
+		pr_err("BBox;%s: Unexpected interrupt 0x%08x.\n",
 			   mmc_hostname(host->mmc), unexpected);
 		MMC_TRACE(host->mmc, "Unexpected interrupt 0x%08x.\n",
 				unexpected);

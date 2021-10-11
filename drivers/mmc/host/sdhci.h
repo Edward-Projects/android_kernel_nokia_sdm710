@@ -710,6 +710,28 @@ struct sdhci_ops {
 	unsigned int	(*get_current_limit)(struct sdhci_host *host);
 };
 
+enum {
+	FIH_SDHCI_STD_TY_EMMC = 0,
+	FIH_SDHCI_STD_TY_SD,
+	/* max */
+    	FIH_SDHCI_STD_TY_MAX
+};
+
+enum {
+	FIH_SDHCI_STD_ERR_INT_CRC = 0,
+	FIH_SDHCI_STD_ERR_INT_DATA_CRC,
+	FIH_SDHCI_STD_ERR_AUTO_CMD_CRC,
+	/* max */
+    	FIH_SDHCI_STD_ERR_MAX
+};
+#define FIH_SDHCI_STD_MAX_ERR  50
+#define FIH_SDHCI_STD_EMMC_TYPE_ID  50500
+#define FIH_SDHCI_STD_SD_TYPE_ID  50550
+/* emmc_crc_error_info in atoms.proto */
+#define FIH_STD_EMMC_CRC_ERR             150801
+/* sd_crc_error_info in atoms.proto */
+#define FIH_STD_SD_CRC_ERR               150802
+
 #ifdef CONFIG_MMC_SDHCI_IO_ACCESSORS
 
 static inline void sdhci_writel(struct sdhci_host *host, u32 val, int reg)
