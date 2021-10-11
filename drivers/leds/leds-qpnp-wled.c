@@ -312,6 +312,10 @@ static struct wled_vref_setting vref_setting_pmi8998 = {
 	60000, 397500, 22500, 127500,
 };
 
+#ifdef CONFIG_LEDS_BOOST_FS_UA
+struct qpnp_wled *g_wled = NULL;
+#endif /*CONFIG_LEDS_BOOST_FS_UA*/
+
 /**
  *  qpnp_wled - wed data structure
  *  @ cdev - led class device
@@ -405,6 +409,7 @@ struct qpnp_wled {
 	u16			max_strings;
 	u16			prev_level;
 	u16			*brt_map_table;
+	u16			boost_fs_curr_ua;
 	u8			strings[QPNP_WLED_MAX_STRINGS];
 	u8			num_strings;
 	u8			loop_auto_gm_thresh;
@@ -1085,6 +1090,69 @@ static ssize_t qpnp_wled_fs_curr_ua_store(struct device *dev,
 
 	return count;
 }
+
+#ifdef CONFIG_LEDS_BOOST_FS_UA
+int qpnp_wled_fs_curr_ua_set(int fs_curr)
+{
+	int  i=0, rc=0;
+	u8 reg=0;
+
+	if(g_wled==NULL){
+		pr_info("WLED Handle is NULL");
+		return 0;
+	}
+
+	pr_info("wled set %d",fs_curr);
+	for (i = 0; i < g_wled->max_strings; i++) {
+		if (fs_curr < QPNP_WLED_FS_CURR_MIN_UA)
+			fs_curr = QPNP_WLED_FS_CURR_MIN_UA;
+		else if (fs_curr > QPNP_WLED_FS_CURR_MAX_UA)
+			fs_curr = QPNP_WLED_FS_CURR_MAX_UA;
+
+		reg = fs_curr / QPNP_WLED_FS_CURR_STEP_UA;
+		rc = qpnp_wled_masked_write_reg(g_wled,
+			QPNP_WLED_FS_CURR_REG(g_wled->sink_base, i),
+			QPNP_WLED_FS_CURR_MASK, reg);
+		if (rc < 0)
+			return rc;
+	}
+
+	g_wled->fs_curr_ua = fs_curr;
+
+	rc = qpnp_wled_sync_reg_toggle(g_wled);
+	if (rc < 0) {
+		dev_err(&g_wled->pdev->dev, "Failed to toggle sync reg %d\n", rc);
+		return rc;
+	}
+
+	return rc;
+}
+
+EXPORT_SYMBOL(qpnp_wled_fs_curr_ua_set);
+
+int qpnp_wled_get_boost_fs_curr_ua_max(void)
+{
+	if(g_wled==NULL){
+		pr_info("WLED Handle is NULL");
+		return 0;
+	}
+	return g_wled->boost_fs_curr_ua;
+}
+
+EXPORT_SYMBOL(qpnp_wled_get_boost_fs_curr_ua_max);
+
+int qpnp_wled_get_boost_fs_curr_ua(void)
+{
+	if(g_wled==NULL){
+		pr_info("WLED Handle is NULL");
+		return 0;
+	}
+
+	return g_wled->fs_curr_ua;
+}
+
+EXPORT_SYMBOL(qpnp_wled_get_boost_fs_curr_ua);
+#endif /*CONFIG_LEDS_BOOST_FS_UA*/
 
 /* sysfs attributes exported by wled */
 static struct device_attribute qpnp_wled_attrs[] = {
@@ -2628,6 +2696,21 @@ static int qpnp_wled_parse_dt(struct qpnp_wled *wled)
 		return rc;
 	}
 
+#ifdef CONFIG_LEDS_BOOST_FS_UA
+	rc = of_property_read_u32(pdev->dev.of_node,
+			"qcom,boost-fs-curr-ua", &temp_val);
+
+	if (!rc) {
+		if(temp_val > wled->fs_curr_ua)
+			wled->boost_fs_curr_ua = temp_val;
+		else
+			wled->boost_fs_curr_ua=wled->fs_curr_ua;
+	}else{
+		wled->boost_fs_curr_ua = wled->fs_curr_ua;
+	}
+	pr_info("WLED boost fs current is %d",wled->boost_fs_curr_ua);
+#endif
+
 	wled->cons_sync_write_delay_us = 0;
 	rc = of_property_read_u32(pdev->dev.of_node,
 			"qcom,cons-sync-write-delay-us", &temp_val);
@@ -2782,6 +2865,10 @@ static int qpnp_wled_probe(struct platform_device *pdev)
 			goto sysfs_fail;
 		}
 	}
+
+#ifdef CONFIG_LEDS_BOOST_FS_UA
+	g_wled = dev_get_drvdata(&pdev->dev);
+#endif /*CONFIG_LEDS_BOOST_FS_UA*/
 
 	return 0;
 

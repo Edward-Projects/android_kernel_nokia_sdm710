@@ -176,6 +176,8 @@
 #define HAP_WAVE_PLAY_RATE_US_MAX	20475
 #define HAP_MAX_PLAY_TIME_MS		15000
 
+#define WRITE_REGISTER_ERROR(addr, rc)	do {printk("BBox;%s: write reg=0x%x error, rc=%d\n", __func__, addr, rc); printk("BBox::UEC;19::7\n");} while (0)
+
 enum hap_brake_pat {
 	NO_BRAKE = 0,
 	BRAKE_VMAX_4,
@@ -358,6 +360,7 @@ struct hap_chip {
 	bool				play_irq_en;
 	bool				auto_res_err_recovery_hw;
 	bool				vcc_pon_enabled;
+	struct work_struct		haptics_off_work;
 };
 
 static int qpnp_haptics_parse_buffer_dt(struct hap_chip *chip);
@@ -416,6 +419,10 @@ static int qpnp_haptics_write_reg(struct hap_chip *chip, u16 addr, u8 *val,
 	if (rc < 0)
 		pr_err("Error writing address: 0x%x - rc %d\n", addr, rc);
 
+	if (rc < 0) {
+		WRITE_REGISTER_ERROR(addr, rc);
+	}
+
 out:
 	spin_unlock_irqrestore(&chip->bus_lock, flags);
 	return rc;
@@ -441,6 +448,10 @@ static int qpnp_haptics_masked_write_reg(struct hap_chip *chip, u16 addr,
 	rc = regmap_update_bits(chip->regmap, addr, mask, val);
 	if (rc < 0)
 		pr_err("Error writing address: 0x%x - rc %d\n", addr, rc);
+
+	if (rc < 0) {
+		WRITE_REGISTER_ERROR(addr, rc);
+	}
 
 	if (!rc)
 		pr_debug("wrote to address 0x%x = 0x%x\n", addr, val);
@@ -827,6 +838,17 @@ static void qpnp_haptics_work(struct work_struct *work)
 		else
 			chip->vcc_pon_enabled = false;
 	}
+}
+
+static void qpnp_haptics_off_work(struct work_struct *work)
+{
+	struct hap_chip *chip = container_of(work, struct hap_chip,
+						haptics_off_work);
+	int rc = qpnp_haptics_mod_enable(chip, false);
+
+	pr_err("%s Entry", __func__);
+	if (rc < 0)
+		pr_err("Error in disabling module, rc=%d\n", rc);
 }
 
 static enum hrtimer_restart hap_stop_timer(struct hrtimer *timer)
@@ -1520,6 +1542,8 @@ static ssize_t qpnp_haptics_store_activate(struct device *dev,
 	if (val != 0 && val != 1)
 		return count;
 
+	pr_err("%s %s", __func__, val?"+++ ON +++":"--- off ---");
+
 	if (val) {
 		hrtimer_cancel(&chip->stop_timer);
 		if (is_sw_lra_auto_resonance_control(chip))
@@ -1529,11 +1553,15 @@ static ssize_t qpnp_haptics_store_activate(struct device *dev,
 		atomic_set(&chip->state, 1);
 		schedule_work(&chip->haptics_work);
 	} else {
+#if 1
+		schedule_work(&chip->haptics_off_work);
+#else
 		rc = qpnp_haptics_mod_enable(chip, false);
 		if (rc < 0) {
 			pr_err("Error in disabling module, rc=%d\n", rc);
 			return rc;
 		}
+#endif
 	}
 
 	return count;
@@ -2444,6 +2472,7 @@ static int qpnp_haptics_probe(struct platform_device *pdev)
 	mutex_init(&chip->play_lock);
 	mutex_init(&chip->param_lock);
 	INIT_WORK(&chip->haptics_work, qpnp_haptics_work);
+	INIT_WORK(&chip->haptics_off_work, qpnp_haptics_off_work);
 
 	rc = qpnp_haptics_config(chip);
 	if (rc < 0) {
@@ -2488,6 +2517,7 @@ sysfs_fail:
 				&qpnp_haptics_attrs[i].attr);
 register_fail:
 	cancel_work_sync(&chip->haptics_work);
+	cancel_work_sync(&chip->haptics_off_work);
 	hrtimer_cancel(&chip->auto_res_err_poll_timer);
 	hrtimer_cancel(&chip->stop_timer);
 fail:
@@ -2504,6 +2534,7 @@ static int qpnp_haptics_remove(struct platform_device *pdev)
 	struct hap_chip *chip = dev_get_drvdata(&pdev->dev);
 
 	cancel_work_sync(&chip->haptics_work);
+	cancel_work_sync(&chip->haptics_off_work);
 	hrtimer_cancel(&chip->auto_res_err_poll_timer);
 	hrtimer_cancel(&chip->stop_timer);
 	mutex_destroy(&chip->play_lock);
@@ -2520,6 +2551,7 @@ static void qpnp_haptics_shutdown(struct platform_device *pdev)
 	struct hap_chip *chip = dev_get_drvdata(&pdev->dev);
 
 	cancel_work_sync(&chip->haptics_work);
+	cancel_work_sync(&chip->haptics_off_work);
 
 	/* disable haptics */
 	qpnp_haptics_mod_enable(chip, false);

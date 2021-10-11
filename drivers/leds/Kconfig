@@ -742,6 +742,12 @@ config LEDS_QPNP_VIBRATOR
 	  manually or by the DTEST lines.It uses the android timed-output
 	  framework.
 
+config LEDS_BOOST_FS_UA
+	tristate "Support for QPNP LEDs"
+	depends on LEDS_CLASS && SPMI && DRM_DSI_CUSTOMIZE
+	help
+	  This function support Qualcomm WLED boost
+
 comment "LED Triggers"
 source "drivers/leds/trigger/Kconfig"
 
