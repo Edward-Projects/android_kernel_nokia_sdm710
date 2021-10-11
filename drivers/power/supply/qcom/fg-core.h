@@ -342,6 +342,10 @@ struct fg_batt_props {
 	int		float_volt_uv;
 	int		vbatt_full_mv;
 	int		fastchg_curr_ma;
+#ifdef CONFIG_FIH_BATTERY
+	const char	*batt_manufacturer;
+	int		warm_rechg_volt_uv;
+#endif
 };
 
 struct fg_cyc_ctr_data {

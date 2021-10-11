@@ -538,11 +538,11 @@ static void pl_taper_work(struct work_struct *work)
 			get_fcc_split(chip, total_fcc_ua, &master_fcc_ua,
 					&slave_fcc_ua);
 			if (slave_fcc_ua <= MINIMUM_PARALLEL_FCC_UA) {
-				pl_dbg(chip, PR_PARALLEL, "terminating: parallel's share is low\n");
+				pr_err("terminating: parallel's share is low\n");
 				vote(chip->pl_disable_votable, TAPER_END_VOTER,
 						true, 0);
 			} else {
-				pl_dbg(chip, PR_PARALLEL, "terminating: parallel disabled\n");
+				pr_err("terminating: parallel disabled\n");
 			}
 			goto done;
 		}
@@ -567,7 +567,7 @@ static void pl_taper_work(struct work_struct *work)
 				goto done;
 			}
 
-			pl_dbg(chip, PR_PARALLEL, "master is taper charging; reducing FCC to %dua\n",
+			pr_err("master is taper charging; reducing FCC to %dua\n",
 					eff_fcc_ua);
 			vote(chip->fcc_votable, TAPER_STEPPER_VOTER,
 					true, eff_fcc_ua);
@@ -586,7 +586,7 @@ static void pl_taper_work(struct work_struct *work)
 			 */
 			if (get_effective_result(chip->fv_votable) >
 						chip->taper_entry_fv) {
-				pl_dbg(chip, PR_PARALLEL, "Float voltage increased. Exiting taper\n");
+				pr_err("Float voltage increased. Exiting taper\n");
 				goto done;
 			} else {
 				pl_dbg(chip, PR_PARALLEL, "master is fast charging; waiting for next taper\n");
