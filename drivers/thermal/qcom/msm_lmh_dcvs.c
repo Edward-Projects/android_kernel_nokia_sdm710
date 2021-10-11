@@ -113,6 +113,10 @@ struct limits_dcvs_hw {
 LIST_HEAD(lmh_dcvs_hw_list);
 DEFINE_MUTEX(lmh_dcvs_list_access);
 
+#ifdef CONFIG_FIH_CPU_USAGE
+static	struct limits_dcvs_hw *sys_hw[2] = {NULL, NULL};
+#endif
+
 static int limits_dcvs_get_freq_limits(uint32_t cpu, unsigned long *max_freq,
 					 unsigned long *min_freq)
 {
@@ -505,6 +509,20 @@ lmh_freq_limit_show(struct device *dev, struct device_attribute *devattr,
 	return snprintf(buf, PAGE_SIZE, "%lu\n", hw->hw_freq_limit);
 }
 
+#ifdef CONFIG_FIH_CPU_USAGE
+void quick_get_limits_dcvs_freq(unsigned int *curr)
+{
+	unsigned i;
+
+	for (i = 0; i < 2; i++) {
+		curr[i] = 0;
+		if (sys_hw[i]) {
+			curr[i] = sys_hw[i]->hw_freq_limit;
+		}
+	}
+}
+#endif
+
 static int limits_dcvs_probe(struct platform_device *pdev)
 {
 	int ret;
@@ -663,6 +681,11 @@ static int limits_dcvs_probe(struct platform_device *pdev)
 	hw->lmh_freq_attr.show = lmh_freq_limit_show;
 	hw->lmh_freq_attr.attr.mode = 0444;
 	device_create_file(&pdev->dev, &hw->lmh_freq_attr);
+#ifdef CONFIG_FIH_CPU_USAGE
+	if (affinity < 2) {
+		sys_hw[affinity] = hw;
+	}
+#endif
 
 probe_exit:
 	mutex_lock(&lmh_dcvs_list_access);
