@@ -1258,7 +1258,8 @@ static int try_to_force_load(struct module *mod, const char *reason)
 #endif
 }
 
-#ifdef CONFIG_MODVERSIONS
+#if 0
+
 /* If the arch applies (non-zero) relocations to kernel kcrctab, unapply it. */
 static unsigned long maybe_relocated(unsigned long crc,
 				     const struct module *crc_owner)
